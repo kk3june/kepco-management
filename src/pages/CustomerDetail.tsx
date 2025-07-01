@@ -1,4 +1,7 @@
 import { CustomerForm } from "@/components/CustomerForm";
+import { FactoryUsageForm } from "@/components/FactoryUsageForm";
+import { FeasibilityStudyForm } from "@/components/FeasibilityStudyForm";
+import { FileUpload } from "@/components/FileUpload";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
@@ -16,6 +19,7 @@ import {
   Briefcase,
   Building2,
   Edit,
+  FileText,
   Mail,
   MapPin,
   Phone,
@@ -28,6 +32,7 @@ export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFeasibilityOpen, setIsFeasibilityOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -167,10 +172,16 @@ export function CustomerDetail() {
             <p className="text-gray-600">수용가 상세 정보</p>
           </div>
         </div>
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Edit className="mr-2 h-4 w-4" />
-          수정
-        </Button>
+        <div className="flex space-x-2">
+          <Button variant="outline" onClick={() => setIsFeasibilityOpen(true)}>
+            <FileText className="mr-2 h-4 w-4" />
+            타당성 검토
+          </Button>
+          <Button onClick={() => setIsFormOpen(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            수정
+          </Button>
+        </div>
       </div>
 
       {/* Status Card */}
@@ -221,6 +232,10 @@ export function CustomerDetail() {
           <TabsTrigger value="contact">연락처</TabsTrigger>
           <TabsTrigger value="project">사업 정보</TabsTrigger>
           <TabsTrigger value="team">담당자</TabsTrigger>
+          {customer.building_type === "factory" && (
+            <TabsTrigger value="factory">공장 정보</TabsTrigger>
+          )}
+          <TabsTrigger value="documents">첨부 문서</TabsTrigger>
         </TabsList>
 
         <TabsContent value="info" className="space-y-4">
@@ -469,6 +484,67 @@ export function CustomerDetail() {
             </Card>
           </div>
         </TabsContent>
+
+        {customer.building_type === "factory" && (
+          <TabsContent value="factory" className="space-y-4">
+            <FactoryUsageForm
+              customerId={customer.id}
+              buildingType={customer.building_type}
+              onChange={() => {
+                // 공장 데이터 업데이트 후 필요한 작업
+              }}
+            />
+          </TabsContent>
+        )}
+
+        <TabsContent value="documents" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <FileUpload
+              customerId={customer.id}
+              documentType="business_license"
+              title="사업자 등록증"
+              description="사업자 등록증을 업로드해주세요."
+              acceptedTypes={[".pdf", ".jpg", ".jpeg", ".png"]}
+              maxSize={5}
+            />
+
+            <FileUpload
+              customerId={customer.id}
+              documentType="electrical_diagram"
+              title="변전실 도면 (단선결선도)"
+              description="변전실 단선결선도를 업로드해주세요."
+              acceptedTypes={[".pdf", ".jpg", ".jpeg", ".png", ".dwg"]}
+              maxSize={10}
+            />
+
+            <FileUpload
+              customerId={customer.id}
+              documentType="power_usage_data"
+              title="전력사용량 데이터 (고메타)"
+              description="1월 또는 8월 중 전력사용량이 큰 자료를 업로드해주세요."
+              acceptedTypes={[".pdf", ".xls", ".xlsx", ".csv"]}
+              maxSize={5}
+            />
+
+            <FileUpload
+              customerId={customer.id}
+              documentType="other"
+              title="기타 문서"
+              description="기타 필요한 문서를 업로드해주세요."
+              acceptedTypes={[
+                ".pdf",
+                ".doc",
+                ".docx",
+                ".xls",
+                ".xlsx",
+                ".jpg",
+                ".jpeg",
+                ".png",
+              ]}
+              maxSize={10}
+            />
+          </div>
+        </TabsContent>
       </Tabs>
 
       <CustomerForm
@@ -476,6 +552,13 @@ export function CustomerDetail() {
         onOpenChange={setIsFormOpen}
         customer={customer}
         onSubmit={handleFormSubmit}
+      />
+
+      <FeasibilityStudyForm
+        open={isFeasibilityOpen}
+        onOpenChange={setIsFeasibilityOpen}
+        customerId={customer.id}
+        customerName={customer.company_name}
       />
     </div>
   );
