@@ -72,7 +72,7 @@ export function FileUpload({
       const testFileName = `test/${Date.now()}_test.txt`;
       const testFile = new Blob(["test"], { type: "text/plain" });
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("customer-documents")
         .upload(testFileName, testFile, {
           upsert: true,
