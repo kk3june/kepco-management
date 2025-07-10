@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { Customer } from "@/types/database";
 import { Building2, Edit, Eye, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -34,23 +34,16 @@ export function Customers() {
 
   const fetchCustomers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("customers")
-        .select(
-          `
-          *,
-          sales_rep:sales_reps(name),
-          engineer:engineers(name)
-        `
-        )
-        .order("created_at", { ascending: false });
+      const response = await apiClient.get<Customer[]>(
+        API_ENDPOINTS.CUSTOMERS.LIST
+      );
 
-      if (error) {
-        console.error("Error fetching customers:", error);
+      if (response.error) {
+        console.error("Error fetching customers:", response.error);
         return;
       }
 
-      setCustomers(data || []);
+      setCustomers(response.data || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -74,10 +67,12 @@ export function Customers() {
     }
 
     try {
-      const { error } = await supabase.from("customers").delete().eq("id", id);
+      const response = await apiClient.delete(
+        API_ENDPOINTS.CUSTOMERS.DELETE(id)
+      );
 
-      if (error) {
-        console.error("Error deleting customer:", error);
+      if (response.error) {
+        console.error("Error deleting customer:", response.error);
         return;
       }
 
@@ -96,21 +91,24 @@ export function Customers() {
     try {
       if (editingCustomer) {
         // 수정
-        const { error } = await supabase
-          .from("customers")
-          .update(data)
-          .eq("id", editingCustomer.id);
+        const response = await apiClient.put(
+          API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.id),
+          data
+        );
 
-        if (error) {
-          console.error("Error updating customer:", error);
+        if (response.error) {
+          console.error("Error updating customer:", response.error);
           return;
         }
       } else {
         // 생성
-        const { error } = await supabase.from("customers").insert([data]);
+        const response = await apiClient.post(
+          API_ENDPOINTS.CUSTOMERS.CREATE,
+          data
+        );
 
-        if (error) {
-          console.error("Error creating customer:", error);
+        if (response.error) {
+          console.error("Error creating customer:", response.error);
           return;
         }
       }

@@ -9,18 +9,25 @@ import {
 } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth";
 import { Building2, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export function Login() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const { user, signIn } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,21 +35,15 @@ export function Login() {
     setError("");
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const result = await signIn(username, password);
 
-      if (error) {
-        setError(error.message);
+      if (result.error) {
+        setError(result.error);
         return;
       }
 
-      if (data.user) {
-        // Store user info in localStorage for persistence
-        localStorage.setItem("user", JSON.stringify(data.user));
-        navigate("/");
-      }
+      // 로그인 성공 시 홈으로 이동
+      navigate("/");
     } catch (err) {
       setError("로그인 중 오류가 발생했습니다.");
     } finally {
@@ -72,13 +73,13 @@ export function Login() {
               {error && <Alert variant="destructive">{error}</Alert>}
 
               <div className="space-y-2">
-                <Label htmlFor="email">이메일</Label>
+                <Label htmlFor="username">아이디</Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username"
+                  type="text"
+                  placeholder="아이디를 입력하세요"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                   disabled={isLoading}
                 />
@@ -125,7 +126,7 @@ export function Login() {
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                테스트 계정: admin@test.com / test1234!
+                테스트 계정: admin001 / test1234
               </p>
             </div>
           </CardContent>
