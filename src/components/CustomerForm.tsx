@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { Customer, Engineer, SalesRep } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -179,21 +179,21 @@ export function CustomerForm({
   }, [customer, form]);
 
   const fetchSalesReps = async () => {
-    const { data } = await supabase
-      .from("sales_reps")
-      .select("id, name")
-      .order("name");
-
-    setSalesReps(data as SalesRep[]);
+    const response = await apiClient.get<SalesRep[]>(
+      API_ENDPOINTS.SALES_REPS.LIST
+    );
+    if (response.data) {
+      setSalesReps(response.data);
+    }
   };
 
   const fetchEngineers = async () => {
-    const { data } = await supabase
-      .from("engineers")
-      .select("id, name")
-      .order("name");
-
-    setEngineers(data as Engineer[]);
+    const response = await apiClient.get<Engineer[]>(
+      API_ENDPOINTS.ENGINEERS.LIST
+    );
+    if (response.data) {
+      setEngineers(response.data);
+    }
   };
 
   const handleSubmit = (data: CustomerFormData) => {

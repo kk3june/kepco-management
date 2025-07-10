@@ -45,7 +45,7 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <User className="h-4 w-4" />
-                <span>{user?.email}</span>
+                <span>{user?.username}</span>
               </div>
               <Button
                 variant="outline"
