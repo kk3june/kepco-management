@@ -1,0 +1,228 @@
+const API_BASE_URL =
+  "http://ec2-3-36-179-72.ap-northeast-2.compute.amazonaws.com:8080";
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    try {
+      const url = `${this.baseUrl}${endpoint}`;
+
+      // 인증 토큰 가져오기
+      const token = localStorage.getItem("auth_token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      // options.headers가 있으면 추가
+      if (options.headers) {
+        Object.assign(headers, options.headers);
+      }
+
+      const response = await fetch(url, {
+        headers,
+        ...options,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          error:
+            errorData.message ||
+            `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      console.error("API request failed:", error);
+      return {
+        error:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      };
+    }
+  }
+
+  // GET 요청
+  async get<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "GET" });
+  }
+
+  // POST 요청
+  async post<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  }
+
+  // PUT 요청
+  async put<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  }
+
+  // DELETE 요청
+  async delete<T>(endpoint: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: "DELETE" });
+  }
+
+  // 파일 업로드
+  async uploadFile<T>(
+    endpoint: string,
+    file: File,
+    additionalData?: any
+  ): Promise<ApiResponse<T>> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      if (additionalData) {
+        Object.entries(additionalData).forEach(([key, value]) => {
+          formData.append(key, String(value));
+        });
+      }
+
+      const url = `${this.baseUrl}${endpoint}`;
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return {
+          error:
+            errorData.message ||
+            `HTTP ${response.status}: ${response.statusText}`,
+        };
+      }
+
+      const data = await response.json();
+      return { data };
+    } catch (error) {
+      console.error("File upload failed:", error);
+      return {
+        error: error instanceof Error ? error.message : "File upload failed",
+      };
+    }
+  }
+}
+
+export const apiClient = new ApiClient(API_BASE_URL);
+
+// API 엔드포인트 상수
+export const API_ENDPOINTS = {
+  // 인증
+  AUTH: {
+    LOGIN: "/api/auth/login",
+    LOGOUT: "/api/auth/logout",
+    REFRESH: "/api/auth/refresh",
+  },
+
+  // 영업사원
+  SALES_REPS: {
+    LIST: "/api/sales-reps",
+    CREATE: "/api/sales-reps",
+    UPDATE: (id: string) => `/api/sales-reps/${id}`,
+    DELETE: (id: string) => `/api/sales-reps/${id}`,
+    GET: (id: string) => `/api/sales-reps/${id}`,
+  },
+
+  // 엔지니어
+  ENGINEERS: {
+    LIST: "/api/engineers",
+    CREATE: "/api/engineers",
+    UPDATE: (id: string) => `/api/engineers/${id}`,
+    DELETE: (id: string) => `/api/engineers/${id}`,
+    GET: (id: string) => `/api/engineers/${id}`,
+  },
+
+  // 고객
+  CUSTOMERS: {
+    LIST: "/api/customers",
+    CREATE: "/api/customers",
+    UPDATE: (id: string) => `/api/customers/${id}`,
+    DELETE: (id: string) => `/api/customers/${id}`,
+    GET: (id: string) => `/api/customers/${id}`,
+  },
+
+  // 공장 사용량
+  FACTORY_USAGE: {
+    LIST: "/api/factory-usage",
+    CREATE: "/api/factory-usage",
+    UPDATE: (id: string) => `/api/factory-usage/${id}`,
+    DELETE: (id: string) => `/api/factory-usage/${id}`,
+    GET: (id: string) => `/api/factory-usage/${id}`,
+    BY_CUSTOMER: (customerId: string) =>
+      `/api/factory-usage/customer/${customerId}`,
+  },
+
+  // 타당성 검토
+  FEASIBILITY_STUDIES: {
+    LIST: "/api/feasibility-studies",
+    CREATE: "/api/feasibility-studies",
+    UPDATE: (id: string) => `/api/feasibility-studies/${id}`,
+    DELETE: (id: string) => `/api/feasibility-studies/${id}`,
+    GET: (id: string) => `/api/feasibility-studies/${id}`,
+    BY_CUSTOMER: (customerId: string) =>
+      `/api/feasibility-studies/customer/${customerId}`,
+  },
+
+  // 파일 업로드
+  FILES: {
+    UPLOAD: "/api/files/upload",
+    DELETE: (id: string) => `/api/files/${id}`,
+    GET: (id: string) => `/api/files/${id}`,
+    DOWNLOAD: (id: string) => `/api/files/${id}/download`,
+  },
+} as const;
+
+// 에러 핸들링 헬퍼 함수
+export const handleApiError = (error: any, operation: string) => {
+  console.error(`Error ${operation}:`, error);
+
+  if (error?.message?.includes("JWT") || error?.message?.includes("token")) {
+    return "인증 오류가 발생했습니다. 새로고침 후 다시 시도해주세요.";
+  }
+
+  if (
+    error?.message?.includes("network") ||
+    error?.message?.includes("fetch")
+  ) {
+    return "네트워크 연결을 확인해주세요.";
+  }
+
+  if (
+    error?.message?.includes("404") ||
+    error?.message?.includes("not found")
+  ) {
+    return "데이터를 찾을 수 없습니다.";
+  }
+
+  if (error?.message?.includes("409") || error?.message?.includes("conflict")) {
+    return "이미 존재하는 데이터입니다.";
+  }
+
+  return error?.message || `${operation} 중 오류가 발생했습니다.`;
+};
