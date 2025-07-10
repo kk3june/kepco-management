@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { Engineer } from "@/types/database";
 import { Edit, Mail, MapPin, Phone, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -32,17 +32,16 @@ export function Engineers() {
 
   const fetchEngineers = async () => {
     try {
-      const { data, error } = await supabase
-        .from("engineers")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const response = await apiClient.get<Engineer[]>(
+        API_ENDPOINTS.ENGINEERS.LIST
+      );
 
-      if (error) {
-        console.error("Error fetching engineers:", error);
+      if (response.error) {
+        console.error("Error fetching engineers:", response.error);
         return;
       }
 
-      setEngineers(data || []);
+      setEngineers(response.data || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -66,10 +65,12 @@ export function Engineers() {
     }
 
     try {
-      const { error } = await supabase.from("engineers").delete().eq("id", id);
+      const response = await apiClient.delete(
+        API_ENDPOINTS.ENGINEERS.DELETE(id)
+      );
 
-      if (error) {
-        console.error("Error deleting engineer:", error);
+      if (response.error) {
+        console.error("Error deleting engineer:", response.error);
         return;
       }
 
@@ -85,21 +86,24 @@ export function Engineers() {
     try {
       if (editingEngineer) {
         // 수정
-        const { error } = await supabase
-          .from("engineers")
-          .update(data)
-          .eq("id", editingEngineer.id);
+        const response = await apiClient.put(
+          API_ENDPOINTS.ENGINEERS.UPDATE(editingEngineer.id),
+          data
+        );
 
-        if (error) {
-          console.error("Error updating engineer:", error);
+        if (response.error) {
+          console.error("Error updating engineer:", response.error);
           return;
         }
       } else {
         // 생성
-        const { error } = await supabase.from("engineers").insert([data]);
+        const response = await apiClient.post(
+          API_ENDPOINTS.ENGINEERS.CREATE,
+          data
+        );
 
-        if (error) {
-          console.error("Error creating engineer:", error);
+        if (response.error) {
+          console.error("Error creating engineer:", response.error);
           return;
         }
       }

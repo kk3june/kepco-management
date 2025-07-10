@@ -12,7 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { Customer } from "@/types/database";
 import {
   ArrowLeft,
@@ -43,24 +43,16 @@ export function CustomerDetail() {
 
   const fetchCustomer = async (customerId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("customers")
-        .select(
-          `
-          *,
-          sales_rep:sales_reps(*),
-          engineer:engineers(*)
-        `
-        )
-        .eq("id", customerId)
-        .single();
+      const response = await apiClient.get<Customer>(
+        API_ENDPOINTS.CUSTOMERS.GET(customerId)
+      );
 
-      if (error) {
-        console.error("Error fetching customer:", error);
+      if (response.error) {
+        console.error("Error fetching customer:", response.error);
         return;
       }
 
-      setCustomer(data);
+      setCustomer(response.data || null);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -77,13 +69,13 @@ export function CustomerDetail() {
     if (!customer) return;
 
     try {
-      const { error } = await supabase
-        .from("customers")
-        .update(data)
-        .eq("id", customer.id);
+      const response = await apiClient.put(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.id),
+        data
+      );
 
-      if (error) {
-        console.error("Error updating customer:", error);
+      if (response.error) {
+        console.error("Error updating customer:", response.error);
         return;
       }
 
@@ -504,8 +496,6 @@ export function CustomerDetail() {
               documentType="business_license"
               title="사업자 등록증"
               description="사업자 등록증을 업로드해주세요."
-              acceptedTypes={[".pdf", ".jpg", ".jpeg", ".png"]}
-              maxSize={5}
             />
 
             <FileUpload
@@ -513,8 +503,6 @@ export function CustomerDetail() {
               documentType="electrical_diagram"
               title="변전실 도면 (단선결선도)"
               description="변전실 단선결선도를 업로드해주세요."
-              acceptedTypes={[".pdf", ".jpg", ".jpeg", ".png", ".dwg"]}
-              maxSize={10}
             />
 
             <FileUpload
@@ -522,8 +510,6 @@ export function CustomerDetail() {
               documentType="power_usage_data"
               title="전력사용량 데이터 (고메타)"
               description="1월 또는 8월 중 전력사용량이 큰 자료를 업로드해주세요."
-              acceptedTypes={[".pdf", ".xls", ".xlsx", ".csv"]}
-              maxSize={5}
             />
 
             <FileUpload
@@ -531,17 +517,6 @@ export function CustomerDetail() {
               documentType="other"
               title="기타 문서"
               description="기타 필요한 문서를 업로드해주세요."
-              acceptedTypes={[
-                ".pdf",
-                ".doc",
-                ".docx",
-                ".xls",
-                ".xlsx",
-                ".jpg",
-                ".jpeg",
-                ".png",
-              ]}
-              maxSize={10}
             />
           </div>
         </TabsContent>

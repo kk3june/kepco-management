@@ -1,69 +1,126 @@
-import { User } from "@supabase/supabase-js";
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-import { supabase } from "./supabase";
+import { createContext, useContext, useEffect, useState } from "react";
+import { API_ENDPOINTS, apiClient, handleApiError } from "./api";
+
+interface User {
+  username: string;
+  role: string;
+}
+
+interface LoginResponse {
+  status: number;
+  message: string;
+  data: {
+    username: string;
+    accessToken: string;
+  };
+}
 
 interface AuthContextType {
   user: User | null;
-  loading: boolean;
+  isLoading: boolean;
+  signIn: (username: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
+  // 컴포넌트 마운트 시 저장된 토큰이 있으면 사용자 상태 복원
   useEffect(() => {
-    // Check for existing session
-    const checkUser = async () => {
+    const token = localStorage.getItem("auth_token");
+
+    if (token) {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
+        // JWT 토큰에서 사용자 정보 추출
+        const userInfo = parseJwt(token);
+
+        // JWT 구조에 따라 username 또는 sub 필드 확인
+        const username = userInfo.username || userInfo.sub;
+        const role = userInfo.role || "USER";
+
+        if (username) {
+          setUser({ username, role });
+        } else {
+          console.log("사용자 이름을 찾을 수 없음:", userInfo);
+        }
       } catch (error) {
-        console.error("Error checking session:", error);
-      } finally {
-        setLoading(false);
+        console.error("토큰 파싱 실패:", error);
+        // 토큰이 유효하지 않으면 제거
+        localStorage.removeItem("auth_token");
       }
-    };
-
-    checkUser();
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
+
+  const signIn = async (username: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.post<LoginResponse>(
+        API_ENDPOINTS.AUTH.LOGIN,
+        { username, password }
+      );
+
+      if (response.error) {
+        return { error: response.error };
+      }
+
+      if (response.data && response.data.status === 200) {
+        const { username: userUsername, accessToken } = response.data.data;
+
+        // JWT 토큰에서 role 정보 추출
+        const userInfo = parseJwt(accessToken);
+        const role = userInfo.role || "USER";
+
+        setUser({ username: userUsername, role });
+        localStorage.setItem("auth_token", accessToken);
+        return {};
+      }
+
+      return { error: response.data?.message || "로그인에 실패했습니다." };
+    } catch (error) {
+      const errorMessage = handleApiError(error, "로그인");
+      return { error: errorMessage };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
-      localStorage.removeItem("user");
+      setUser(null);
+      localStorage.removeItem("auth_token");
     } catch (error) {
-      console.error("Error signing out:", error);
+      console.error("Logout failed:", error);
+    }
+  };
+
+  // JWT 토큰 파싱 함수
+  const parseJwt = (token: string) => {
+    try {
+      const base64Url = token.split(".")[1];
+      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split("")
+          .map(function (c) {
+            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+          })
+          .join("")
+      );
+      const parsed = JSON.parse(jsonPayload);
+      return parsed;
+    } catch (error) {
+      console.error("JWT parsing failed:", error);
+      return { username: "", userId: 0, role: "USER" };
     }
   };
 
   const value = {
     user,
-    loading,
+    isLoading,
+    signIn,
     signOut,
   };
 

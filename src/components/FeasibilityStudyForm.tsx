@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { FeasibilityStudy } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar, DollarSign, FileText } from "lucide-react";
@@ -81,27 +81,24 @@ export function FeasibilityStudyForm({
 
   const fetchFeasibilityStudy = async () => {
     try {
-      const { data, error } = await supabase
-        .from("feasibility_studies")
-        .select("*")
-        .eq("customer_id", customerId)
-        .single();
+      const response = await apiClient.get<FeasibilityStudy>(
+        API_ENDPOINTS.FEASIBILITY_STUDIES.BY_CUSTOMER(customerId)
+      );
 
-      if (error && error.code !== "PGRST116") {
-        // PGRST116 = no rows returned
-        console.error("Error fetching feasibility study:", error);
+      if (response.error) {
+        console.error("Error fetching feasibility study:", response.error);
         return;
       }
 
-      if (data) {
-        setFeasibilityStudy(data);
+      if (response.data) {
+        setFeasibilityStudy(response.data);
         form.reset({
-          request_date: data.request_date,
-          target_completion_date: data.target_completion_date || "",
-          project_description: data.project_description || "",
-          expected_cost_reduction: data.expected_cost_reduction,
-          status: data.status,
-          review_comments: data.review_comments || "",
+          request_date: response.data.request_date,
+          target_completion_date: response.data.target_completion_date || "",
+          project_description: response.data.project_description || "",
+          expected_cost_reduction: response.data.expected_cost_reduction,
+          status: response.data.status,
+          review_comments: response.data.review_comments || "",
         });
       } else {
         setFeasibilityStudy(null);
@@ -134,23 +131,24 @@ export function FeasibilityStudyForm({
 
       if (feasibilityStudy) {
         // 수정
-        const { error } = await supabase
-          .from("feasibility_studies")
-          .update(submitData)
-          .eq("id", feasibilityStudy.id);
+        const response = await apiClient.put(
+          API_ENDPOINTS.FEASIBILITY_STUDIES.UPDATE(feasibilityStudy.id),
+          submitData
+        );
 
-        if (error) {
-          console.error("Error updating feasibility study:", error);
+        if (response.error) {
+          console.error("Error updating feasibility study:", response.error);
           return;
         }
       } else {
         // 생성
-        const { error } = await supabase
-          .from("feasibility_studies")
-          .insert([submitData]);
+        const response = await apiClient.post(
+          API_ENDPOINTS.FEASIBILITY_STUDIES.CREATE,
+          submitData
+        );
 
-        if (error) {
-          console.error("Error creating feasibility study:", error);
+        if (response.error) {
+          console.error("Error creating feasibility study:", response.error);
           return;
         }
       }

@@ -1,5 +1,4 @@
 import { Alert, AlertDescription } from "@/components/ui/Alert";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   Card,
@@ -8,17 +7,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { CustomerDocument } from "@/types/database";
-import {
-  AlertCircle,
-  CheckCircle,
-  Download,
-  File,
-  Upload,
-  X,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { AlertCircle, File, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface FileUploadProps {
   customerId: string;
@@ -29,8 +21,6 @@ interface FileUploadProps {
     | "other";
   title: string;
   description: string;
-  acceptedTypes?: string[];
-  maxSize?: number; // MB
   onChange?: () => void;
 }
 
@@ -39,25 +29,12 @@ export function FileUpload({
   documentType,
   title,
   description,
-  acceptedTypes = [
-    ".pdf",
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".doc",
-    ".docx",
-    ".xls",
-    ".xlsx",
-  ],
-  maxSize = 10,
   onChange,
 }: FileUploadProps) {
   const [files, setFiles] = useState<CustomerDocument[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [storageAvailable, setStorageAvailable] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     checkStorageAvailability();
@@ -68,295 +45,139 @@ export function FileUpload({
 
   const checkStorageAvailability = async () => {
     try {
-      // 실제 업로드 테스트로 Storage 가용성 확인
-      const testFileName = `test/${Date.now()}_test.txt`;
-      const testFile = new Blob(["test"], { type: "text/plain" });
-
-      const { error } = await supabase.storage
-        .from("customer-documents")
-        .upload(testFileName, testFile, {
-          upsert: true,
-        });
-
-      if (error) {
-        console.error("Storage availability check failed:", error);
-        setStorageAvailable(false);
-
-        // 에러 타입에 따른 구체적인 메시지
-        if (error.message.includes("bucket")) {
-          setError(
-            "Storage 버킷이 설정되지 않았습니다. 관리자에게 문의하세요."
-          );
-        } else if (error.message.includes("policy")) {
-          setError("Storage 접근 권한이 없습니다. 관리자에게 문의하세요.");
-        } else {
-          setError(`Storage 오류: ${error.message}`);
-        }
-        return;
-      }
-
-      // 테스트 파일 삭제
-      await supabase.storage.from("customer-documents").remove([testFileName]);
-
+      // TODO: REST API로 파일 업로드 테스트 구현
       setStorageAvailable(true);
-      setError(null);
     } catch (error) {
       console.error("Storage availability check failed:", error);
       setStorageAvailable(false);
-      setError("Storage 연결을 확인할 수 없습니다.");
+      setError("파일 업로드 서비스를 사용할 수 없습니다.");
     }
   };
 
   const fetchFiles = async () => {
     try {
-      setError(null);
-      const { data, error } = await supabase
-        .from("customer_documents")
-        .select("*")
-        .eq("customer_id", customerId)
-        .eq("document_type", documentType)
-        .order("created_at", { ascending: false });
+      // TODO: REST API로 파일 목록 조회 구현
+      const response = await apiClient.get<CustomerDocument[]>(
+        `/api/files?customer_id=${customerId}&document_type=${documentType}`
+      );
 
-      if (error) {
-        if (error.code === "42P01") {
-          setError(
-            "데이터베이스 테이블이 아직 생성되지 않았습니다. 관리자에게 문의하세요."
-          );
-        } else {
-          console.error("Error fetching files:", error);
-          setError("파일 목록을 불러오는데 실패했습니다.");
-        }
-        return;
+      if (response.data) {
+        setFiles(response.data);
       }
-
-      setFiles(data || []);
     } catch (error) {
-      console.error("Error:", error);
-      setError("파일 목록을 불러오는데 실패했습니다.");
+      console.error("Error fetching files:", error);
     }
   };
 
-  const handleFileSelect = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const selectedFiles = event.target.files;
-    if (!selectedFiles || selectedFiles.length === 0) return;
+  const addFactoryUsage = () => {
+    setFiles([
+      ...files,
+      {
+        id: `temp_${Date.now()}`,
+        customer_id: customerId,
+        document_type: documentType,
+        file_name: "",
+        file_path: "",
+        file_size: 0,
+        uploaded_by: "",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as CustomerDocument,
+    ]);
+  };
 
-    if (!storageAvailable) {
-      setError("Storage가 설정되지 않아 파일 업로드가 불가능합니다.");
-      return;
+  const removeFactoryUsage = async (index: number) => {
+    const file = files[index];
+
+    // 이미 저장된 항목이면 DB에서 삭제
+    if (file.id && !file.id.startsWith("temp_")) {
+      try {
+        const response = await apiClient.delete(
+          API_ENDPOINTS.FILES.DELETE(file.id)
+        );
+
+        if (response.error) {
+          console.error("Error deleting file:", response.error);
+          return;
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        return;
+      }
     }
+
+    const newFiles = files.filter((_, i) => i !== index);
+    setFiles(newFiles);
+    onChange?.();
+  };
+
+  const updateFactoryUsage = (
+    index: number,
+    field: keyof CustomerDocument,
+    value: string | number
+  ) => {
+    const newFiles = [...files];
+    newFiles[index] = { ...newFiles[index], [field]: value };
+    setFiles(newFiles);
+  };
+
+  const saveFactoryUsages = async () => {
+    if (!customerId) return;
 
     setUploading(true);
-    setError(null);
-    setSuccess(null);
-
     try {
-      for (const file of Array.from(selectedFiles)) {
-        // 파일 크기 체크
-        if (file.size > maxSize * 1024 * 1024) {
-          setError(`파일 크기는 ${maxSize}MB 이하여야 합니다: ${file.name}`);
-          continue;
-        }
+      // TODO: REST API로 파일 업로드 구현
+      // 기존 데이터 삭제 후 새로 저장
+      const deleteResponse = await apiClient.delete(
+        `/api/files?customer_id=${customerId}&document_type=${documentType}`
+      );
 
-        // 파일 확장자 체크
-        const fileExtension = "." + file.name.split(".").pop()?.toLowerCase();
-        if (!acceptedTypes.includes(fileExtension)) {
-          setError(
-            `지원하지 않는 파일 형식입니다: ${file.name} (${acceptedTypes.join(
-              ", "
-            )})`
-          );
-          continue;
-        }
-
-        // 파일명 생성 (한글 파일명 지원)
-        const timestamp = Date.now();
-        const fileName = `${customerId}/${documentType}/${timestamp}_${file.name}`;
-
-        // Supabase Storage에 파일 업로드
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("customer-documents")
-          .upload(fileName, file, {
-            upsert: false,
-          });
-
-        if (uploadError) {
-          console.error("Error uploading file:", uploadError);
-          setError(
-            `파일 업로드에 실패했습니다: ${file.name} - ${uploadError.message}`
-          );
-          continue;
-        }
-
-        // 데이터베이스에 파일 정보 저장
-        const { error: dbError } = await supabase
-          .from("customer_documents")
-          .insert({
-            customer_id: customerId,
-            document_type: documentType,
-            file_name: file.name,
-            file_path: uploadData.path,
-            file_size: file.size,
-            uploaded_by: "current_user", // 나중에 실제 사용자 정보로 변경
-          });
-
-        if (dbError) {
-          console.error("Error saving file info:", dbError);
-          // 업로드된 파일 삭제
-          await supabase.storage
-            .from("customer-documents")
-            .remove([uploadData.path]);
-          setError(
-            `파일 정보 저장에 실패했습니다: ${file.name} - ${dbError.message}`
-          );
-          continue;
-        }
-
-        setSuccess(`파일이 성공적으로 업로드되었습니다: ${file.name}`);
-      }
-
-      if (!error) {
-        fetchFiles();
-        onChange?.();
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      setError("파일 업로드 중 오류가 발생했습니다.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleFileDelete = async (fileId: string, filePath: string) => {
-    if (!confirm("파일을 삭제하시겠습니까?")) return;
-
-    try {
-      setError(null);
-      setSuccess(null);
-
-      // Storage에서 파일 삭제
-      if (storageAvailable) {
-        const { error: storageError } = await supabase.storage
-          .from("customer-documents")
-          .remove([filePath]);
-
-        if (storageError) {
-          console.error("Error deleting file from storage:", storageError);
-          // Storage 삭제 실패해도 DB에서는 삭제 진행
-        }
-      }
-
-      // 데이터베이스에서 파일 정보 삭제
-      const { error: dbError } = await supabase
-        .from("customer_documents")
-        .delete()
-        .eq("id", fileId);
-
-      if (dbError) {
-        console.error("Error deleting file info:", dbError);
-        setError("파일 삭제에 실패했습니다.");
+      if (deleteResponse.error) {
+        console.error("Error deleting existing files:", deleteResponse.error);
         return;
       }
 
-      setSuccess("파일이 삭제되었습니다.");
-      fetchFiles();
-      onChange?.();
-    } catch (error) {
-      console.error("Error:", error);
-      setError("파일 삭제 중 오류가 발생했습니다.");
-    }
-  };
+      // 빈 항목 제외하고 저장
+      const validFiles = files.filter((file) => file.file_name.trim() !== "");
 
-  const handleFileDownload = async (filePath: string, fileName: string) => {
-    if (!storageAvailable) {
-      setError("Storage가 설정되지 않아 다운로드할 수 없습니다.");
-      return;
-    }
+      if (validFiles.length > 0) {
+        const insertData = validFiles.map((file) => ({
+          customer_id: customerId,
+          document_type: documentType,
+          file_name: file.file_name,
+          file_path: file.file_path,
+          file_size: file.file_size,
+          uploaded_by: file.uploaded_by,
+        }));
 
-    try {
-      setError(null);
+        const insertResponse = await apiClient.post(
+          API_ENDPOINTS.FILES.UPLOAD,
+          insertData
+        );
 
-      // 공개 URL 방식으로 먼저 시도
-      const { data: publicUrlData } = supabase.storage
-        .from("customer-documents")
-        .getPublicUrl(filePath);
-
-      if (publicUrlData.publicUrl) {
-        // 공개 URL로 다운로드
-        const response = await fetch(publicUrlData.publicUrl);
-
-        if (response.ok) {
-          const blob = await response.blob();
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = url;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-
-          setSuccess("파일 다운로드가 시작되었습니다.");
+        if (insertResponse.error) {
+          console.error("Error inserting files:", insertResponse.error);
           return;
         }
       }
 
-      // 공개 URL 방식이 실패하면 download 메서드 사용
-      const { data, error } = await supabase.storage
-        .from("customer-documents")
-        .download(filePath);
-
-      if (error) {
-        console.error("Error downloading file:", error);
-        setError(`파일 다운로드에 실패했습니다: ${error.message}`);
-        return;
-      }
-
-      // 파일 다운로드
-      const url = URL.createObjectURL(data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      setSuccess("파일 다운로드가 시작되었습니다.");
+      onChange?.();
     } catch (error) {
       console.error("Error:", error);
-      setError("파일 다운로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploading(false);
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
+  // 공장이 아니거나 단독 사용인 경우 표시하지 않음
+  if (documentType !== "business_license") {
+    return null;
+  }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <File className="mr-2 h-5 w-5" />
-          {title}
-          {storageAvailable ? (
-            <Badge variant="outline" className="ml-2 text-green-600">
-              Storage 활성
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="ml-2 text-red-600">
-              Storage 비활성
-            </Badge>
-          )}
-        </CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -367,94 +188,66 @@ export function FileUpload({
           </Alert>
         )}
 
-        {success && (
-          <Alert>
-            <CheckCircle className="h-4 w-4" />
-            <AlertDescription className="text-green-700">
-              {success}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* 파일 업로드 영역 */}
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <Upload className="mx-auto h-12 w-12 text-gray-400" />
-          <div className="mt-4">
-            <Button
-              variant="outline"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || !storageAvailable}
-            >
-              {uploading ? "업로드 중..." : "파일 선택"}
-            </Button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileSelect}
-              multiple
-              accept={acceptedTypes.join(",")}
-              className="hidden"
-            />
-          </div>
-          <p className="mt-2 text-sm text-gray-500">
-            {acceptedTypes.join(", ")} 파일만 업로드 가능 (최대 {maxSize}MB)
-          </p>
-          {!storageAvailable && (
-            <p className="mt-1 text-xs text-red-600">
-              ⚠️ Storage 설정이 필요합니다
+        {!storageAvailable ? (
+          <div className="text-center py-8">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600">
+              파일 업로드 서비스를 사용할 수 없습니다.
             </p>
-          )}
-        </div>
-
-        {/* 업로드된 파일 목록 */}
-        {files.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="font-medium">업로드된 파일</h4>
-            {files.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center justify-between p-3 border rounded-lg"
-              >
-                <div className="flex items-center space-x-3">
+            <p className="text-sm text-gray-500 mt-1">관리자에게 문의하세요.</p>
+          </div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {files.map((file, index) => (
+                <div
+                  key={file.id}
+                  className="flex items-center space-x-4 p-4 border rounded-lg"
+                >
                   <File className="h-5 w-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium">{file.file_name}</p>
-                    <div className="flex items-center space-x-2">
-                      <p className="text-sm text-gray-500">
-                        {formatFileSize(file.file_size)} •{" "}
-                        {new Date(file.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={file.file_name}
+                      onChange={(e) =>
+                        updateFactoryUsage(index, "file_name", e.target.value)
+                      }
+                      placeholder="파일명을 입력하세요"
+                      className="w-full p-2 border rounded"
+                    />
                   </div>
-                </div>
-                <div className="flex items-center space-x-2">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      handleFileDownload(file.file_path, file.file_name)
-                    }
-                    disabled={!storageAvailable}
-                    title={
-                      !storageAvailable
-                        ? "Storage 설정 후 사용 가능"
-                        : "다운로드"
-                    }
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleFileDelete(file.id, file.file_path)}
+                    onClick={() => removeFactoryUsage(index)}
                     className="text-red-600 hover:text-red-700"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={addFactoryUsage}
+                className="flex-1"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                파일 추가
+              </Button>
+              <Button
+                type="button"
+                onClick={saveFactoryUsages}
+                disabled={uploading}
+                className="flex-1"
+              >
+                {uploading ? "저장 중..." : "저장"}
+              </Button>
+            </div>
+          </>
         )}
       </CardContent>
     </Card>

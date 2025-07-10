@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -43,19 +43,23 @@ export function FactoryUsageForm({
 
   const fetchFactoryUsages = async () => {
     try {
-      const { data, error } = await supabase
-        .from("factory_usage")
-        .select("*")
-        .eq("customer_id", customerId);
+      const response = await apiClient.get<
+        Array<{
+          id: string;
+          factory_name: string;
+          january_usage: number;
+          august_usage: number;
+        }>
+      >(API_ENDPOINTS.FACTORY_USAGE.BY_CUSTOMER(customerId));
 
-      if (error) {
-        console.error("Error fetching factory usages:", error);
+      if (response.error) {
+        console.error("Error fetching factory usages:", response.error);
         return;
       }
 
-      if (data && data.length > 0) {
+      if (response.data && response.data.length > 0) {
         setFactoryUsages(
-          data.map((item) => ({
+          response.data.map((item) => ({
             id: item.id,
             factory_name: item.factory_name,
             january_usage: item.january_usage,
@@ -81,13 +85,12 @@ export function FactoryUsageForm({
     // 이미 저장된 항목이면 DB에서 삭제
     if (usage.id) {
       try {
-        const { error } = await supabase
-          .from("factory_usage")
-          .delete()
-          .eq("id", usage.id);
+        const response = await apiClient.delete(
+          API_ENDPOINTS.FACTORY_USAGE.DELETE(usage.id)
+        );
 
-        if (error) {
-          console.error("Error deleting factory usage:", error);
+        if (response.error) {
+          console.error("Error deleting factory usage:", response.error);
           return;
         }
       } catch (error) {
@@ -117,13 +120,15 @@ export function FactoryUsageForm({
     setLoading(true);
     try {
       // 기존 데이터 삭제 후 새로 저장
-      const { error: deleteError } = await supabase
-        .from("factory_usage")
-        .delete()
-        .eq("customer_id", customerId);
+      const deleteResponse = await apiClient.delete(
+        API_ENDPOINTS.FACTORY_USAGE.BY_CUSTOMER(customerId)
+      );
 
-      if (deleteError) {
-        console.error("Error deleting existing factory usages:", deleteError);
+      if (deleteResponse.error) {
+        console.error(
+          "Error deleting existing factory usages:",
+          deleteResponse.error
+        );
         return;
       }
 
@@ -142,12 +147,16 @@ export function FactoryUsageForm({
           august_usage: usage.august_usage,
         }));
 
-        const { error: insertError } = await supabase
-          .from("factory_usage")
-          .insert(insertData);
+        const insertResponse = await apiClient.post(
+          API_ENDPOINTS.FACTORY_USAGE.CREATE,
+          insertData
+        );
 
-        if (insertError) {
-          console.error("Error inserting factory usages:", insertError);
+        if (insertResponse.error) {
+          console.error(
+            "Error inserting factory usages:",
+            insertResponse.error
+          );
           return;
         }
       }

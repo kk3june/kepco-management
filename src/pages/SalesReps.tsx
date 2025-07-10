@@ -16,7 +16,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { supabase } from "@/lib/supabase";
+import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { SalesRep } from "@/types/database";
 import { Edit, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -33,17 +33,16 @@ export function SalesReps() {
 
   const fetchSalesReps = async () => {
     try {
-      const { data, error } = await supabase
-        .from("sales_reps")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const response = await apiClient.get<SalesRep[]>(
+        API_ENDPOINTS.SALES_REPS.LIST
+      );
 
-      if (error) {
-        console.error("Error fetching sales reps:", error);
+      if (response.error) {
+        console.error("Error fetching sales reps:", response.error);
         return;
       }
 
-      setSalesReps(data || []);
+      setSalesReps(response.data || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -67,10 +66,12 @@ export function SalesReps() {
     }
 
     try {
-      const { error } = await supabase.from("sales_reps").delete().eq("id", id);
+      const response = await apiClient.delete(
+        API_ENDPOINTS.SALES_REPS.DELETE(id)
+      );
 
-      if (error) {
-        console.error("Error deleting sales rep:", error);
+      if (response.error) {
+        console.error("Error deleting sales rep:", response.error);
         return;
       }
 
@@ -86,21 +87,24 @@ export function SalesReps() {
     try {
       if (editingSalesRep) {
         // 수정
-        const { error } = await supabase
-          .from("sales_reps")
-          .update(data)
-          .eq("id", editingSalesRep.id);
+        const response = await apiClient.put(
+          API_ENDPOINTS.SALES_REPS.UPDATE(editingSalesRep.id),
+          data
+        );
 
-        if (error) {
-          console.error("Error updating sales rep:", error);
+        if (response.error) {
+          console.error("Error updating sales rep:", response.error);
           return;
         }
       } else {
         // 생성
-        const { error } = await supabase.from("sales_reps").insert([data]);
+        const response = await apiClient.post(
+          API_ENDPOINTS.SALES_REPS.CREATE,
+          data
+        );
 
-        if (error) {
-          console.error("Error creating sales rep:", error);
+        if (response.error) {
+          console.error("Error creating sales rep:", response.error);
           return;
         }
       }
