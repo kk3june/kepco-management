@@ -1,4 +1,14 @@
-import { Building2, HardHat, LayoutDashboard, Menu, Users } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/lib/auth";
+import {
+  Building2,
+  HardHat,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  User,
+  Users,
+} from "lucide-react";
 import { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -15,6 +25,11 @@ const navigation = [
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -27,9 +42,24 @@ export function Layout({ children }: LayoutProps) {
                 한전수전합리화 관리시스템
               </h1>
             </div>
-            <button className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 lg:hidden">
-              <Menu className="h-5 w-5" />
-            </button>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <User className="h-4 w-4" />
+                <span>{user?.email}</span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center space-x-1"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>로그아웃</span>
+              </Button>
+              <button className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 lg:hidden">
+                <Menu className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </header>

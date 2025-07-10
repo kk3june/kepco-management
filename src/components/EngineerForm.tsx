@@ -35,7 +35,9 @@ interface EngineerFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   engineer: Engineer | null;
-  onSubmit: (data: Omit<Engineer, "id" | "created_at" | "updated_at">) => void;
+  onSubmit: (
+    data: Pick<Engineer, "name" | "phone" | "email" | "address">
+  ) => void;
 }
 
 export function EngineerForm({

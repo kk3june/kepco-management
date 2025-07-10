@@ -80,7 +80,7 @@ export function Engineers() {
   };
 
   const handleFormSubmit = async (
-    data: Omit<Engineer, "id" | "created_at" | "updated_at">
+    data: Pick<Engineer, "name" | "phone" | "email" | "address">
   ) => {
     try {
       if (editingEngineer) {
