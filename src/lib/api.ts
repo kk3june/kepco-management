@@ -1,5 +1,6 @@
-const API_BASE_URL =
-  "http://ec2-3-36-179-72.ap-northeast-2.compute.amazonaws.com:8080";
+const API_BASE_URL = import.meta.env.DEV
+  ? "" // 개발 환경에서는 프록시 사용
+  : "http://ec2-3-36-179-72.ap-northeast-2.compute.amazonaws.com:8080";
 
 export interface ApiResponse<T> {
   data?: T;
@@ -104,8 +105,18 @@ class ApiClient {
       }
 
       const url = `${this.baseUrl}${endpoint}`;
+
+      // 인증 토큰 가져오기
+      const token = localStorage.getItem("auth_token");
+      const headers: Record<string, string> = {};
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(url, {
         method: "POST",
+        headers,
         body: formData,
       });
 
@@ -131,7 +142,7 @@ class ApiClient {
 
 export const apiClient = new ApiClient(API_BASE_URL);
 
-// API 엔드포인트 상수
+// API 엔드포인트 상수 (Swagger 문서 기반)
 export const API_ENDPOINTS = {
   // 인증
   AUTH: {
@@ -142,17 +153,17 @@ export const API_ENDPOINTS = {
 
   // 영업사원
   SALES_REPS: {
-    LIST: "/api/sales-reps",
-    CREATE: "/api/sales-reps",
-    UPDATE: (id: string) => `/api/sales-reps/${id}`,
-    DELETE: (id: string) => `/api/sales-reps/${id}`,
-    GET: (id: string) => `/api/sales-reps/${id}`,
+    LIST: "/api/home/admin-salesman",
+    CREATE: "/api/salesman/register",
+    UPDATE: (id: string) => `/api/salesman/${id}`,
+    DELETE: (id: string) => `/api/salesman/${id}`,
+    GET: (id: string) => `/api/salesman/${id}`,
   },
 
   // 엔지니어
   ENGINEERS: {
-    LIST: "/api/engineers",
-    CREATE: "/api/engineers",
+    LIST: "/api/home/admin-engineer",
+    CREATE: "/api/engineer/register",
     UPDATE: (id: string) => `/api/engineers/${id}`,
     DELETE: (id: string) => `/api/engineers/${id}`,
     GET: (id: string) => `/api/engineers/${id}`,
@@ -160,17 +171,17 @@ export const API_ENDPOINTS = {
 
   // 고객
   CUSTOMERS: {
-    LIST: "/api/customers",
-    CREATE: "/api/customers",
-    UPDATE: (id: string) => `/api/customers/${id}`,
-    DELETE: (id: string) => `/api/customers/${id}`,
-    GET: (id: string) => `/api/customers/${id}`,
+    LIST: "/api/home/admin-customer",
+    CREATE: "/api/customer",
+    UPDATE: (id: string) => `/api/customer/${id}`,
+    DELETE: (id: string) => `/api/customer/${id}`,
+    GET: (id: string) => `/api/customer/${id}`,
   },
 
   // 공장 사용량
   FACTORY_USAGE: {
     LIST: "/api/factory-usage",
-    CREATE: "/api/factory-usage",
+    CREATE: "/api/factory-usage/register",
     UPDATE: (id: string) => `/api/factory-usage/${id}`,
     DELETE: (id: string) => `/api/factory-usage/${id}`,
     GET: (id: string) => `/api/factory-usage/${id}`,
@@ -181,7 +192,7 @@ export const API_ENDPOINTS = {
   // 타당성 검토
   FEASIBILITY_STUDIES: {
     LIST: "/api/feasibility-studies",
-    CREATE: "/api/feasibility-studies",
+    CREATE: "/api/feasibility-studies/register",
     UPDATE: (id: string) => `/api/feasibility-studies/${id}`,
     DELETE: (id: string) => `/api/feasibility-studies/${id}`,
     GET: (id: string) => `/api/feasibility-studies/${id}`,

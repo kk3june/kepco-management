@@ -47,7 +47,7 @@ type FeasibilityStudyFormData = z.infer<typeof feasibilityStudySchema>;
 interface FeasibilityStudyFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  customerId: string;
+  customerId: number;
   customerName: string;
 }
 
@@ -82,7 +82,7 @@ export function FeasibilityStudyForm({
   const fetchFeasibilityStudy = async () => {
     try {
       const response = await apiClient.get<FeasibilityStudy>(
-        API_ENDPOINTS.FEASIBILITY_STUDIES.BY_CUSTOMER(customerId)
+        API_ENDPOINTS.FEASIBILITY_STUDIES.BY_CUSTOMER(customerId.toString())
       );
 
       if (response.error) {

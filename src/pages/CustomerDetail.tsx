@@ -70,7 +70,7 @@ export function CustomerDetail() {
 
     try {
       const response = await apiClient.put(
-        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.id),
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.id.toString()),
         data
       );
 
@@ -80,7 +80,7 @@ export function CustomerDetail() {
       }
 
       setIsFormOpen(false);
-      fetchCustomer(customer.id);
+      fetchCustomer(customer.id.toString());
     } catch (error) {
       console.error("Error:", error);
     }
@@ -88,26 +88,20 @@ export function CustomerDetail() {
 
   const getStatusText = (status: string) => {
     const statusMap = {
-      feasibility: "타당성 검토",
-      survey: "실사",
-      report: "실사보고서",
-      contract: "계약",
-      construction: "시공",
-      confirmation: "사업확인서",
-      settlement: "수수료 정산",
+      REQUESTED: "의뢰",
+      IN_PROGRESS: "진행중",
+      COMPLETE: "완료",
+      REJECTED: "반려",
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
 
   const getStatusColor = (status: string) => {
     const colorMap = {
-      feasibility: "bg-gray-100 text-gray-800",
-      survey: "bg-blue-100 text-blue-800",
-      report: "bg-yellow-100 text-yellow-800",
-      contract: "bg-green-100 text-green-800",
-      construction: "bg-purple-100 text-purple-800",
-      confirmation: "bg-indigo-100 text-indigo-800",
-      settlement: "bg-emerald-100 text-emerald-800",
+      REQUESTED: "bg-gray-100 text-gray-800",
+      IN_PROGRESS: "bg-blue-100 text-blue-800",
+      COMPLETE: "bg-green-100 text-green-800",
+      REJECTED: "bg-red-100 text-red-800",
     };
     return (
       colorMap[status as keyof typeof colorMap] || "bg-gray-100 text-gray-800"
@@ -116,10 +110,14 @@ export function CustomerDetail() {
 
   const getBuildingTypeText = (type: string) => {
     const typeMap = {
-      factory: "공장",
-      mixed_building: "집합건물",
-      office: "사옥",
-      residential: "주상복합/아파트",
+      FACTORY: "공장",
+      KNOWLEDGE_INDUSTRY_CENTER: "지식산업센터",
+      BUILDING: "건물",
+      MIXED_USE_COMPLEX: "복합단지",
+      APARTMENT_COMPLEX: "아파트단지",
+      SCHOOL: "학교",
+      HOTEL: "호텔",
+      OTHER: "기타",
     };
     return typeMap[type as keyof typeof typeMap] || type;
   };
@@ -159,7 +157,7 @@ export function CustomerDetail() {
           </Button>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">
-              {customer.company_name}
+              {customer.companyName}
             </h1>
             <p className="text-gray-600">수용가 상세 정보</p>
           </div>
@@ -183,14 +181,14 @@ export function CustomerDetail() {
             <div>
               <CardTitle className="flex items-center">
                 <Building2 className="mr-2 h-5 w-5" />
-                {customer.company_name}
+                {customer.companyName}
               </CardTitle>
               <CardDescription>
                 대표자: {customer.representative}
               </CardDescription>
             </div>
-            <Badge className={getStatusColor(customer.progress_status)}>
-              {getStatusText(customer.progress_status)}
+            <Badge className={getStatusColor(customer.progressStatus)}>
+              {getStatusText(customer.progressStatus)}
             </Badge>
           </div>
         </CardHeader>
@@ -199,20 +197,20 @@ export function CustomerDetail() {
             <div>
               <p className="text-sm font-medium text-gray-500">건물형태</p>
               <p className="text-sm">
-                {getBuildingTypeText(customer.building_type)}
+                {getBuildingTypeText(customer.buildingType)}
               </p>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-500">가입경로</p>
+              <p className="text-sm font-medium text-gray-500">임대공장 여부</p>
               <p className="text-sm">
-                {customer.acquisition_channel === "direct" ? "직영" : "사이트"}
+                {customer.tenantFactory ? "임대공장" : "자체공장"}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">
                 사업자등록번호
               </p>
-              <p className="text-sm">{customer.business_number}</p>
+              <p className="text-sm">{customer.businessNumber}</p>
             </div>
           </div>
         </CardContent>
@@ -224,7 +222,7 @@ export function CustomerDetail() {
           <TabsTrigger value="contact">연락처</TabsTrigger>
           <TabsTrigger value="project">사업 정보</TabsTrigger>
           <TabsTrigger value="team">담당자</TabsTrigger>
-          {customer.building_type === "factory" && (
+          {customer.buildingType === "FACTORY" && (
             <TabsTrigger value="factory">공장 정보</TabsTrigger>
           )}
           <TabsTrigger value="documents">첨부 문서</TabsTrigger>
@@ -244,7 +242,7 @@ export function CustomerDetail() {
                       <p className="text-sm font-medium text-gray-500">
                         업체명
                       </p>
-                      <p className="text-sm">{customer.company_name}</p>
+                      <p className="text-sm">{customer.companyName}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">
@@ -256,14 +254,14 @@ export function CustomerDetail() {
                       <p className="text-sm font-medium text-gray-500">
                         사업자등록번호
                       </p>
-                      <p className="text-sm">{customer.business_number}</p>
+                      <p className="text-sm">{customer.businessNumber}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">
                         업종/업태
                       </p>
                       <p className="text-sm">
-                        {customer.business_type} / {customer.business_category}
+                        {customer.businessType} / {customer.businessItem}
                       </p>
                     </div>
                   </div>
@@ -272,7 +270,7 @@ export function CustomerDetail() {
                   <h4 className="font-medium text-gray-900 mb-2">주소</h4>
                   <div className="flex items-start">
                     <MapPin className="mr-2 h-4 w-4 mt-0.5 text-gray-400" />
-                    <p className="text-sm">{customer.business_address}</p>
+                    <p className="text-sm">{customer.businessAddress}</p>
                   </div>
                 </div>
               </div>
@@ -296,7 +294,7 @@ export function CustomerDetail() {
                       <p className="text-sm font-medium text-gray-500">
                         담당자명
                       </p>
-                      <p className="text-sm">{customer.contact_name}</p>
+                      <p className="text-sm">{customer.managerName}</p>
                     </div>
                     <div className="flex items-center">
                       <Phone className="mr-2 h-4 w-4 text-gray-400" />
@@ -304,7 +302,7 @@ export function CustomerDetail() {
                         <p className="text-sm font-medium text-gray-500">
                           회사전화
                         </p>
-                        <p className="text-sm">{customer.company_phone}</p>
+                        <p className="text-sm">{customer.companyPhone}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -313,7 +311,7 @@ export function CustomerDetail() {
                         <p className="text-sm font-medium text-gray-500">
                           휴대전화
                         </p>
-                        <p className="text-sm">{customer.mobile_phone}</p>
+                        <p className="text-sm">{customer.phoneNumber}</p>
                       </div>
                     </div>
                     <div className="flex items-center">
@@ -336,7 +334,7 @@ export function CustomerDetail() {
                       <p className="text-sm font-medium text-gray-500">
                         아이디
                       </p>
-                      <p className="text-sm">{customer.kepco_planner_id}</p>
+                      <p className="text-sm">{customer.powerPlannerId}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-500">
@@ -361,7 +359,7 @@ export function CustomerDetail() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">사업비용</p>
                   <p className="text-lg font-semibold">
-                    {formatCurrency(customer.project_cost)}
+                    {formatCurrency(customer.projectCost)}
                   </p>
                 </div>
                 <div>
@@ -369,34 +367,23 @@ export function CustomerDetail() {
                     전기요금 절감율
                   </p>
                   <p className="text-lg font-semibold">
-                    {customer.power_saving_rate
-                      ? `${customer.power_saving_rate}%`
+                    {customer.electricitySavingRate
+                      ? `${customer.electricitySavingRate}%`
                       : "-"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    한전수불금
-                  </p>
+                  <p className="text-sm font-medium text-gray-500">보조금</p>
                   <p className="text-lg font-semibold">
-                    {formatCurrency(customer.kepco_payment)}
+                    {formatCurrency(customer.subsidy)}
                   </p>
                 </div>
               </div>
 
-              {customer.project_period && (
+              {customer.projectPeriod && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-500">사업기간</p>
-                  <p className="text-sm">{customer.project_period}</p>
-                </div>
-              )}
-
-              {customer.notes && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-500">비고</p>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {customer.notes}
-                  </p>
+                  <p className="text-sm">{customer.projectPeriod}</p>
                 </div>
               )}
             </CardContent>
@@ -414,23 +401,15 @@ export function CustomerDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {customer.sales_rep ? (
+                {customer.salesmanId ? (
                   <div className="space-y-3">
                     <div>
-                      <p className="font-medium">{customer.sales_rep.name}</p>
-                      <p className="text-sm text-gray-500">
-                        수수료율: {customer.sales_rep.commission_rate}%
+                      <p className="font-medium">
+                        영업자 ID: {customer.salesmanId}
                       </p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm">
-                        <Phone className="mr-2 h-4 w-4 text-gray-400" />
-                        {customer.sales_rep.phone}
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Mail className="mr-2 h-4 w-4 text-gray-400" />
-                        {customer.sales_rep.email}
-                      </div>
+                      <p className="text-sm text-gray-500">
+                        담당 영업자 정보는 별도로 조회해야 합니다.
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -450,21 +429,15 @@ export function CustomerDetail() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {customer.engineer ? (
+                {customer.engineerId ? (
                   <div className="space-y-3">
                     <div>
-                      <p className="font-medium">{customer.engineer.name}</p>
-                      <p className="text-sm text-gray-500">기술사</p>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm">
-                        <Phone className="mr-2 h-4 w-4 text-gray-400" />
-                        {customer.engineer.phone}
-                      </div>
-                      <div className="flex items-center text-sm">
-                        <Mail className="mr-2 h-4 w-4 text-gray-400" />
-                        {customer.engineer.email}
-                      </div>
+                      <p className="font-medium">
+                        기술사 ID: {customer.engineerId}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        담당 기술사 정보는 별도로 조회해야 합니다.
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -477,11 +450,11 @@ export function CustomerDetail() {
           </div>
         </TabsContent>
 
-        {customer.building_type === "factory" && (
+        {customer.buildingType === "FACTORY" && (
           <TabsContent value="factory" className="space-y-4">
             <FactoryUsageForm
               customerId={customer.id}
-              buildingType={customer.building_type}
+              buildingType={customer.buildingType}
               onChange={() => {
                 // 공장 데이터 업데이트 후 필요한 작업
               }}
@@ -533,7 +506,7 @@ export function CustomerDetail() {
         open={isFeasibilityOpen}
         onOpenChange={setIsFeasibilityOpen}
         customerId={customer.id}
-        customerName={customer.company_name}
+        customerName={customer.companyName}
       />
     </div>
   );

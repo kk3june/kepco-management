@@ -16,13 +16,15 @@ import {
 } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { Engineer } from "@/types/database";
+import { Engineer, EngineerRequest } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const engineerSchema = z.object({
+  username: z.string().min(1, "아이디를 입력해주세요"),
+  password: z.string().min(1, "비밀번호를 입력해주세요"),
   name: z.string().min(1, "이름을 입력해주세요"),
   phone: z.string().min(1, "연락처를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
@@ -35,9 +37,7 @@ interface EngineerFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   engineer: Engineer | null;
-  onSubmit: (
-    data: Pick<Engineer, "name" | "phone" | "email" | "address">
-  ) => void;
+  onSubmit: (data: EngineerRequest) => void;
 }
 
 export function EngineerForm({
@@ -49,6 +49,8 @@ export function EngineerForm({
   const form = useForm<EngineerFormData>({
     resolver: zodResolver(engineerSchema),
     defaultValues: {
+      username: "",
+      password: "",
       name: "",
       phone: "",
       email: "",
@@ -59,13 +61,17 @@ export function EngineerForm({
   useEffect(() => {
     if (engineer) {
       form.reset({
-        name: engineer.name,
-        phone: engineer.phone,
-        email: engineer.email,
-        address: engineer.address,
+        username: engineer.id.toString() || "",
+        password: "",
+        name: engineer.name || "",
+        phone: engineer.phoneNumber || "",
+        email: engineer.email || "",
+        address: engineer.address || "",
       });
     } else {
       form.reset({
+        username: "",
+        password: "",
         name: "",
         phone: "",
         email: "",
@@ -91,6 +97,34 @@ export function EngineerForm({
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-4"
           >
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>아이디 *</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>비밀번호 *</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="password" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="name"

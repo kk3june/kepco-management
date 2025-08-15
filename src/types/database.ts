@@ -1,105 +1,126 @@
-export interface SalesRep {
-  id: string;
-  name: string;
-  phone: string;
-  email: string;
-  commission_rate: number; // %
-  address: string;
-  settlement_method: "invoice" | "withholding"; // 계산서/원천징수
-  bank_name: string;
-  account_number: string;
-  // 선택 필드
-  business_number?: string;
-  business_type?: string;
-  business_category?: string;
-  representative?: string;
-  business_address?: string;
-  created_at: string;
-  updated_at: string;
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  message?: string;
 }
 
-export interface Engineer {
-  id: string;
+export interface SalesmanRequest {
+  username: string;
+  password: string;
   name: string;
   phone: string;
   email: string;
-  commission_rate: number; // %
   address: string;
-  settlement_method: "invoice" | "withholding"; // 계산서/원천징수
-  bank_name: string;
-  account_number: string;
-  // 선택 필드
-  business_number?: string;
-  business_type?: string;
-  business_category?: string;
+  commissionRate: number;
+  settlementMethod: "INVOICE" | "WITHHOLDING_TAX";
+  bankName: string;
+  bankAccount: string;
+  businessNumber?: string;
   representative?: string;
-  business_address?: string;
-  created_at: string;
-  updated_at: string;
+  businessItem?: string;
+  businessType?: string;
+  businessAddress?: string;
 }
 
-export interface Engineer {
-  id: string;
+export interface SalesmanResponse {
+  adminSalesmanList: Salesman[];
+}
+
+export interface Salesman {
+  id: number;
+  name: string | null;
+  phoneNumber: string;
+  email: string;
+  address: string;
+  commissionRate: number;
+  settlementMethod: "INVOICE" | "WITHHOLDING_TAX";
+  bankName: string;
+  bankAccount: string;
+  businessNumber: string;
+  business_type: string;
+  business_category: string;
+  representative: string;
+  business_address: string;
+}
+
+export interface EngineerRequest {
+  username: string;
+  password: string;
   name: string;
   phone: string;
   email: string;
   address: string;
-  created_at: string;
-  updated_at: string;
+}
+export interface Engineer {
+  id: number;
+  name: string | null;
+  phoneNumber: string;
+  email: string;
+  address: string;
+}
+export interface EngineerResponse {
+  adminEngineerList: Engineer[];
 }
 
 export type BuildingType =
-  | "factory"
-  | "mixed_building"
-  | "office"
-  | "residential";
+  | "FACTORY"
+  | "KNOWLEDGE_INDUSTRY_CENTER"
+  | "BUILDING"
+  | "MIXED_USE_COMPLEX"
+  | "APARTMENT_COMPLEX"
+  | "SCHOOL"
+  | "HOTEL"
+  | "OTHER";
 export type AcquisitionChannel = "direct" | "website";
 export type ProgressStatus =
-  | "feasibility" // 타당성 검토
-  | "survey" // 실사
-  | "report" // 실사보고서
-  | "contract" // 계약
-  | "construction" // 시공
-  | "confirmation" // 사업확인서
-  | "settlement"; // 수수료 정산
+  | "REQUESTED"
+  | "IN_PROGRESS"
+  | "COMPLETE"
+  | "REJECTED";
 
 export interface Customer {
-  id: string;
-  company_name: string;
+  id: number;
+  companyName: string;
   representative: string;
-  business_number: string;
-  business_type: string;
-  business_category: string;
-  business_address: string;
-  contact_name: string;
-  company_phone: string;
+  businessNumber: string;
+  businessType: string;
+  businessItem: string;
+  businessAddress: string;
+  managerName: string;
+  companyPhone: string;
   email: string;
-  mobile_phone: string;
-  kepco_planner_id: string;
-  kepco_planner_password: string;
-  building_type: BuildingType;
-
-  // 관계 필드
-  sales_rep_id: string;
-  engineer_id: string;
-
-  // 사업 정보
-  acquisition_channel: AcquisitionChannel;
-  progress_status: ProgressStatus;
-  project_cost?: number;
-  power_saving_rate?: number;
-  kepco_payment?: number;
-  project_period?: string;
-  notes?: string;
-
-  created_at: string;
-  updated_at: string;
-
-  // 조인된 데이터
-  sales_rep?: SalesRep;
-  engineer?: Engineer;
+  phoneNumber: string;
+  powerPlannerId: string;
+  powerPlannerPassword: string;
+  buildingType: BuildingType;
+  januaryElectricUsage: number;
+  augustElectricUsage: number;
+  salesmanId: number;
+  engineerId: number;
+  projectCost: number;
+  electricitySavingRate: number;
+  subsidy: number;
+  projectPeriod: string;
+  progressStatus: ProgressStatus;
+  tenantFactory: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+export interface CustomerResponse {
+  customerList: CustomerListItem[];
 }
 
+export interface CustomerListItem {
+  customerId: number;
+  companyName: string;
+  representative: string;
+  buildingType: BuildingType;
+  salesmanName: string | null;
+  engineerName: string | null;
+  progressStatus: ProgressStatus | null;
+  companyPhone: string;
+  companyEmail: string;
+}
 export interface FactoryUsage {
   id: string;
   customer_id: string;
@@ -113,7 +134,7 @@ export interface FactoryUsage {
 // 파일 첨부 관리를 위한 새 테이블
 export interface CustomerDocument {
   id: string;
-  customer_id: string;
+  customer_id: number;
   document_type:
     | "business_license"
     | "electrical_diagram"
@@ -153,10 +174,10 @@ export interface FeasibilityStudy {
 export interface Database {
   public: {
     Tables: {
-      sales_reps: {
-        Row: SalesRep;
-        Insert: Omit<SalesRep, "id" | "created_at" | "updated_at">;
-        Update: Partial<Omit<SalesRep, "id" | "created_at" | "updated_at">>;
+      salesmen: {
+        Row: Salesman;
+        Insert: Omit<Salesman, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Salesman, "id" | "created_at" | "updated_at">>;
       };
       engineers: {
         Row: Engineer;
