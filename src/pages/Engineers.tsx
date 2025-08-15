@@ -15,8 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { API_ENDPOINTS, apiClient } from "@/lib/api";
-import { Engineer } from "@/types/database";
+import { API_ENDPOINTS, apiClient, ApiResponse } from "@/lib/api";
+import { Engineer, EngineerRequest, EngineerResponse } from "@/types/database";
 import { Edit, Mail, MapPin, Phone, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -32,7 +32,7 @@ export function Engineers() {
 
   const fetchEngineers = async () => {
     try {
-      const response = await apiClient.get<Engineer[]>(
+      const response = await apiClient.get<ApiResponse<EngineerResponse>>(
         API_ENDPOINTS.ENGINEERS.LIST
       );
 
@@ -41,7 +41,7 @@ export function Engineers() {
         return;
       }
 
-      setEngineers(response.data || []);
+      setEngineers(response.data?.data?.adminEngineerList || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -80,14 +80,12 @@ export function Engineers() {
     }
   };
 
-  const handleFormSubmit = async (
-    data: Pick<Engineer, "name" | "phone" | "email" | "address">
-  ) => {
+  const handleFormSubmit = async (data: EngineerRequest) => {
     try {
       if (editingEngineer) {
         // 수정
         const response = await apiClient.put(
-          API_ENDPOINTS.ENGINEERS.UPDATE(editingEngineer.id),
+          API_ENDPOINTS.ENGINEERS.UPDATE(editingEngineer.id.toString()),
           data
         );
 
@@ -170,7 +168,7 @@ export function Engineers() {
                     <TableCell>
                       <div className="flex items-center">
                         <Phone className="mr-2 h-4 w-4 text-gray-400" />
-                        {engineer.phone}
+                        {engineer.phoneNumber}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -199,7 +197,7 @@ export function Engineers() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(engineer.id)}
+                          onClick={() => handleDelete(engineer.id.toString())}
                           className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />

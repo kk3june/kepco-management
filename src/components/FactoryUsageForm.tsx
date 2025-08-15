@@ -13,7 +13,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface FactoryUsageFormProps {
-  customerId: string;
+  customerId: number;
   buildingType: string;
   onChange?: () => void;
 }
@@ -50,7 +50,7 @@ export function FactoryUsageForm({
           january_usage: number;
           august_usage: number;
         }>
-      >(API_ENDPOINTS.FACTORY_USAGE.BY_CUSTOMER(customerId));
+      >(API_ENDPOINTS.FACTORY_USAGE.BY_CUSTOMER(customerId.toString()));
 
       if (response.error) {
         console.error("Error fetching factory usages:", response.error);
@@ -121,7 +121,7 @@ export function FactoryUsageForm({
     try {
       // 기존 데이터 삭제 후 새로 저장
       const deleteResponse = await apiClient.delete(
-        API_ENDPOINTS.FACTORY_USAGE.BY_CUSTOMER(customerId)
+        API_ENDPOINTS.FACTORY_USAGE.BY_CUSTOMER(customerId.toString())
       );
 
       if (deleteResponse.error) {
@@ -170,7 +170,7 @@ export function FactoryUsageForm({
   };
 
   // 공장이 아니거나 단독 사용인 경우 표시하지 않음
-  if (buildingType !== "factory") {
+  if (buildingType !== "FACTORY") {
     return null;
   }
 

@@ -24,46 +24,54 @@ import {
 } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
-import { API_ENDPOINTS, apiClient } from "@/lib/api";
-import { Customer, Engineer, SalesRep } from "@/types/database";
+import { API_ENDPOINTS, apiClient, ApiResponse } from "@/lib/api";
+import {
+  Customer,
+  Engineer,
+  EngineerResponse,
+  Salesman,
+  SalesmanResponse,
+} from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const customerSchema = z.object({
-  company_name: z.string().min(1, "업체명을 입력해주세요"),
+  companyName: z.string().min(1, "업체명을 입력해주세요"),
   representative: z.string().min(1, "대표자를 입력해주세요"),
-  business_number: z.string().min(1, "사업자등록번호를 입력해주세요"),
-  business_type: z.string().min(1, "업종을 입력해주세요"),
-  business_category: z.string().min(1, "업태를 입력해주세요"),
-  business_address: z.string().min(1, "사업장 주소를 입력해주세요"),
-  contact_name: z.string().min(1, "담당자명을 입력해주세요"),
-  company_phone: z.string().min(1, "회사전화를 입력해주세요"),
+  businessNumber: z.string().min(1, "사업자등록번호를 입력해주세요"),
+  businessType: z.string().min(1, "업종을 입력해주세요"),
+  businessItem: z.string().min(1, "업태를 입력해주세요"),
+  businessAddress: z.string().min(1, "사업장 주소를 입력해주세요"),
+  managerName: z.string().min(1, "담당자명을 입력해주세요"),
+  companyPhone: z.string().min(1, "회사전화를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
-  mobile_phone: z.string().min(1, "휴대전화를 입력해주세요"),
-  kepco_planner_id: z.string().min(1, "한전파워플래너 아이디를 입력해주세요"),
-  kepco_planner_password: z
+  phoneNumber: z.string().min(1, "휴대전화를 입력해주세요"),
+  powerPlannerId: z.string().min(1, "한전파워플래너 아이디를 입력해주세요"),
+  powerPlannerPassword: z
     .string()
     .min(1, "한전파워플래너 패스워드를 입력해주세요"),
-  building_type: z.enum(["factory", "mixed_building", "office", "residential"]),
-  sales_rep_id: z.string().min(1, "담당 영업자를 선택해주세요"),
-  engineer_id: z.string().min(1, "담당 기술사를 선택해주세요"),
-  acquisition_channel: z.enum(["direct", "website"]),
-  progress_status: z.enum([
-    "feasibility",
-    "survey",
-    "report",
-    "contract",
-    "construction",
-    "confirmation",
-    "settlement",
+  buildingType: z.enum([
+    "FACTORY",
+    "KNOWLEDGE_INDUSTRY_CENTER",
+    "BUILDING",
+    "MIXED_USE_COMPLEX",
+    "APARTMENT_COMPLEX",
+    "SCHOOL",
+    "HOTEL",
+    "OTHER",
   ]),
-  project_cost: z.number().optional(),
-  power_saving_rate: z.number().optional(),
-  kepco_payment: z.number().optional(),
-  project_period: z.string().optional(),
-  notes: z.string().optional(),
+  januaryElectricUsage: z.number().min(0, "1월 전기사용량을 입력해주세요"),
+  augustElectricUsage: z.number().min(0, "8월 전기사용량을 입력해주세요"),
+  salesmanId: z.number().min(1, "담당 영업자를 선택해주세요"),
+  engineerId: z.number().min(0, "담당 기술사를 선택해주세요"),
+  projectCost: z.number().min(0, "사업비용을 입력해주세요"),
+  electricitySavingRate: z.number().min(0, "전기요금 절감율을 입력해주세요"),
+  subsidy: z.number().min(0, "보조금을 입력해주세요"),
+  projectPeriod: z.string().min(1, "사업기간을 입력해주세요"),
+  progressStatus: z.enum(["REQUESTED", "IN_PROGRESS", "COMPLETE", "REJECTED"]),
+  tenantFactory: z.boolean().default(false),
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;
@@ -86,40 +94,41 @@ export function CustomerForm({
   customer,
   onSubmit,
 }: CustomerFormProps) {
-  const [salesReps, setSalesReps] = useState<SalesRep[]>([]);
+  const [salesmans, setSalesmans] = useState<Salesman[]>([]);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
 
   const form = useForm<CustomerFormData>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
-      company_name: "",
+      companyName: "",
       representative: "",
-      business_number: "",
-      business_type: "",
-      business_category: "",
-      business_address: "",
-      contact_name: "",
-      company_phone: "",
+      businessNumber: "",
+      businessType: "",
+      businessItem: "",
+      businessAddress: "",
+      managerName: "",
+      companyPhone: "",
       email: "",
-      mobile_phone: "",
-      kepco_planner_id: "",
-      kepco_planner_password: "",
-      building_type: "factory",
-      sales_rep_id: "",
-      engineer_id: "",
-      acquisition_channel: "direct",
-      progress_status: "feasibility",
-      project_cost: undefined,
-      power_saving_rate: undefined,
-      kepco_payment: undefined,
-      project_period: "",
-      notes: "",
+      phoneNumber: "",
+      powerPlannerId: "",
+      powerPlannerPassword: "",
+      buildingType: "FACTORY",
+      januaryElectricUsage: 0,
+      augustElectricUsage: 0,
+      salesmanId: 0,
+      engineerId: 0,
+      projectCost: 0,
+      electricitySavingRate: 0,
+      subsidy: 0,
+      projectPeriod: "",
+      progressStatus: "REQUESTED",
+      tenantFactory: false,
     },
   });
 
   useEffect(() => {
     if (open) {
-      fetchSalesReps();
+      fetchSalesmans();
       fetchEngineers();
     }
   }, [open]);
@@ -127,72 +136,74 @@ export function CustomerForm({
   useEffect(() => {
     if (customer) {
       form.reset({
-        company_name: customer.company_name,
-        representative: customer.representative,
-        business_number: customer.business_number,
-        business_type: customer.business_type,
-        business_category: customer.business_category,
-        business_address: customer.business_address,
-        contact_name: customer.contact_name,
-        company_phone: customer.company_phone,
-        email: customer.email,
-        mobile_phone: customer.mobile_phone,
-        kepco_planner_id: customer.kepco_planner_id,
-        kepco_planner_password: customer.kepco_planner_password,
-        building_type: customer.building_type,
-        sales_rep_id: customer.sales_rep_id,
-        engineer_id: customer.engineer_id,
-        acquisition_channel: customer.acquisition_channel,
-        progress_status: customer.progress_status,
-        project_cost: customer.project_cost,
-        power_saving_rate: customer.power_saving_rate,
-        kepco_payment: customer.kepco_payment,
-        project_period: customer.project_period || "",
-        notes: customer.notes || "",
+        companyName: customer.companyName || "",
+        representative: customer.representative || "",
+        businessNumber: customer.businessNumber || "",
+        businessType: customer.businessType || "",
+        businessItem: customer.businessItem || "",
+        businessAddress: customer.businessAddress || "",
+        managerName: customer.managerName || "",
+        companyPhone: customer.companyPhone || "",
+        email: customer.email || "",
+        phoneNumber: customer.phoneNumber || "",
+        powerPlannerId: customer.powerPlannerId || "",
+        powerPlannerPassword: customer.powerPlannerPassword || "",
+        buildingType: customer.buildingType || "FACTORY",
+        januaryElectricUsage: customer.januaryElectricUsage || 0,
+        augustElectricUsage: customer.augustElectricUsage || 0,
+        salesmanId: customer.salesmanId || 0,
+        engineerId: customer.engineerId || 0,
+        projectCost: customer.projectCost || 0,
+        electricitySavingRate: customer.electricitySavingRate || 0,
+        subsidy: customer.subsidy || 0,
+        projectPeriod: customer.projectPeriod || "",
+        progressStatus: customer.progressStatus || "REQUESTED",
+        tenantFactory: customer.tenantFactory || false,
       });
     } else {
       form.reset({
-        company_name: "",
+        companyName: "",
         representative: "",
-        business_number: "",
-        business_type: "",
-        business_category: "",
-        business_address: "",
-        contact_name: "",
-        company_phone: "",
+        businessNumber: "",
+        businessType: "",
+        businessItem: "",
+        businessAddress: "",
+        managerName: "",
+        companyPhone: "",
         email: "",
-        mobile_phone: "",
-        kepco_planner_id: "",
-        kepco_planner_password: "",
-        building_type: "factory",
-        sales_rep_id: "",
-        engineer_id: "",
-        acquisition_channel: "direct",
-        progress_status: "feasibility",
-        project_cost: undefined,
-        power_saving_rate: undefined,
-        kepco_payment: undefined,
-        project_period: "",
-        notes: "",
+        phoneNumber: "",
+        powerPlannerId: "",
+        powerPlannerPassword: "",
+        buildingType: "FACTORY",
+        januaryElectricUsage: 0,
+        augustElectricUsage: 0,
+        salesmanId: 0,
+        engineerId: 0,
+        projectCost: 0,
+        electricitySavingRate: 0,
+        subsidy: 0,
+        projectPeriod: "",
+        progressStatus: "REQUESTED",
+        tenantFactory: false,
       });
     }
   }, [customer, form]);
 
-  const fetchSalesReps = async () => {
-    const response = await apiClient.get<SalesRep[]>(
+  const fetchSalesmans = async () => {
+    const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
       API_ENDPOINTS.SALES_REPS.LIST
     );
     if (response.data) {
-      setSalesReps(response.data);
+      setSalesmans(response.data.data?.adminSalesmanList || []);
     }
   };
 
   const fetchEngineers = async () => {
-    const response = await apiClient.get<Engineer[]>(
+    const response = await apiClient.get<ApiResponse<EngineerResponse>>(
       API_ENDPOINTS.ENGINEERS.LIST
     );
     if (response.data) {
-      setEngineers(response.data);
+      setEngineers(response.data.data?.engineerList || []);
     }
   };
 
@@ -216,17 +227,18 @@ export function CustomerForm({
             className="space-y-6"
           >
             <Tabs defaultValue="basic" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">기본 정보</TabsTrigger>
                 <TabsTrigger value="contact">연락처 정보</TabsTrigger>
                 <TabsTrigger value="project">사업 정보</TabsTrigger>
+                <TabsTrigger value="electricity">전기 사용량</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basic" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="company_name"
+                    name="companyName"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>업체명 *</FormLabel>
@@ -256,7 +268,7 @@ export function CustomerForm({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="business_number"
+                    name="businessNumber"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>사업자등록번호 *</FormLabel>
@@ -270,7 +282,7 @@ export function CustomerForm({
 
                   <FormField
                     control={form.control}
-                    name="building_type"
+                    name="buildingType"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>건물형태 *</FormLabel>
@@ -284,16 +296,20 @@ export function CustomerForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="factory">공장</SelectItem>
-                            <SelectItem value="mixed_building">
-                              집합건물
+                            <SelectItem value="FACTORY">공장</SelectItem>
+                            <SelectItem value="KNOWLEDGE_INDUSTRY_CENTER">
+                              지식산업센터
                             </SelectItem>
-                            <SelectItem value="office">
-                              사옥 단독 사용
+                            <SelectItem value="BUILDING">건물</SelectItem>
+                            <SelectItem value="MIXED_USE_COMPLEX">
+                              복합 사용 건물
                             </SelectItem>
-                            <SelectItem value="residential">
-                              주상복합 및 아파트단지
+                            <SelectItem value="APARTMENT_COMPLEX">
+                              아파트 단지
                             </SelectItem>
+                            <SelectItem value="SCHOOL">학교</SelectItem>
+                            <SelectItem value="HOTEL">호텔</SelectItem>
+                            <SelectItem value="OTHER">기타</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -305,7 +321,7 @@ export function CustomerForm({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="business_type"
+                    name="businessType"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>업종 *</FormLabel>
@@ -319,7 +335,7 @@ export function CustomerForm({
 
                   <FormField
                     control={form.control}
-                    name="business_category"
+                    name="businessItem"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>업태 *</FormLabel>
@@ -334,7 +350,7 @@ export function CustomerForm({
 
                 <FormField
                   control={form.control}
-                  name="business_address"
+                  name="businessAddress"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>사업장 주소 *</FormLabel>
@@ -351,7 +367,7 @@ export function CustomerForm({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="contact_name"
+                    name="managerName"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>담당자명 *</FormLabel>
@@ -365,7 +381,7 @@ export function CustomerForm({
 
                   <FormField
                     control={form.control}
-                    name="company_phone"
+                    name="companyPhone"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>회사전화 *</FormLabel>
@@ -381,7 +397,7 @@ export function CustomerForm({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="mobile_phone"
+                    name="phoneNumber"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>휴대전화 *</FormLabel>
@@ -413,7 +429,7 @@ export function CustomerForm({
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="kepco_planner_id"
+                      name="powerPlannerId"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>아이디 *</FormLabel>
@@ -427,7 +443,7 @@ export function CustomerForm({
 
                     <FormField
                       control={form.control}
-                      name="kepco_planner_password"
+                      name="powerPlannerPassword"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>패스워드 *</FormLabel>
@@ -446,13 +462,15 @@ export function CustomerForm({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="sales_rep_id"
+                    name="salesmanId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>담당 영업자 *</FormLabel>
                         <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value))
+                          }
+                          defaultValue={field.value?.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -460,8 +478,11 @@ export function CustomerForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {salesReps.map((rep) => (
-                              <SelectItem key={rep.id} value={rep.id}>
+                            {salesmans.map((rep) => (
+                              <SelectItem
+                                key={rep.id}
+                                value={rep.id.toString()}
+                              >
                                 {rep.name}
                               </SelectItem>
                             ))}
@@ -474,13 +495,15 @@ export function CustomerForm({
 
                   <FormField
                     control={form.control}
-                    name="engineer_id"
+                    name="engineerId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>담당 기술사 *</FormLabel>
+                        <FormLabel>담당 기술사</FormLabel>
                         <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          onValueChange={(value) =>
+                            field.onChange(parseInt(value))
+                          }
+                          defaultValue={field.value?.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -488,8 +511,12 @@ export function CustomerForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="0">선택하지 않음</SelectItem>
                             {engineers.map((engineer) => (
-                              <SelectItem key={engineer.id} value={engineer.id}>
+                              <SelectItem
+                                key={engineer.id}
+                                value={engineer.id.toString()}
+                              >
                                 {engineer.name}
                               </SelectItem>
                             ))}
@@ -504,32 +531,7 @@ export function CustomerForm({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="acquisition_channel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>가입 경로 *</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="direct">직영</SelectItem>
-                            <SelectItem value="website">사이트</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="progress_status"
+                    name="progressStatus"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>진행상황 *</FormLabel>
@@ -543,19 +545,37 @@ export function CustomerForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="feasibility">
-                              타당성 검토
-                            </SelectItem>
-                            <SelectItem value="survey">실사</SelectItem>
-                            <SelectItem value="report">실사보고서</SelectItem>
-                            <SelectItem value="contract">계약</SelectItem>
-                            <SelectItem value="construction">시공</SelectItem>
-                            <SelectItem value="confirmation">
-                              사업확인서
-                            </SelectItem>
-                            <SelectItem value="settlement">
-                              수수료 정산
-                            </SelectItem>
+                            <SelectItem value="REQUESTED">의뢰</SelectItem>
+                            <SelectItem value="IN_PROGRESS">진행중</SelectItem>
+                            <SelectItem value="COMPLETE">완료</SelectItem>
+                            <SelectItem value="REJECTED">거절</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tenantFactory"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>임대공장 여부</FormLabel>
+                        <Select
+                          onValueChange={(value) =>
+                            field.onChange(value === "true")
+                          }
+                          defaultValue={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="false">자체공장</SelectItem>
+                            <SelectItem value="true">임대공장</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -567,7 +587,7 @@ export function CustomerForm({
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
-                    name="project_cost"
+                    name="projectCost"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>사업비용 (원)</FormLabel>
@@ -577,9 +597,7 @@ export function CustomerForm({
                             type="number"
                             onChange={(e) =>
                               field.onChange(
-                                e.target.value
-                                  ? parseFloat(e.target.value)
-                                  : undefined
+                                e.target.value ? parseFloat(e.target.value) : 0
                               )
                             }
                           />
@@ -591,7 +609,7 @@ export function CustomerForm({
 
                   <FormField
                     control={form.control}
-                    name="power_saving_rate"
+                    name="electricitySavingRate"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>전기요금 절감율 (%)</FormLabel>
@@ -602,9 +620,7 @@ export function CustomerForm({
                             step="0.01"
                             onChange={(e) =>
                               field.onChange(
-                                e.target.value
-                                  ? parseFloat(e.target.value)
-                                  : undefined
+                                e.target.value ? parseFloat(e.target.value) : 0
                               )
                             }
                           />
@@ -616,19 +632,17 @@ export function CustomerForm({
 
                   <FormField
                     control={form.control}
-                    name="kepco_payment"
+                    name="subsidy"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>한전수불금 (원)</FormLabel>
+                        <FormLabel>보조금 (원)</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
                             type="number"
                             onChange={(e) =>
                               field.onChange(
-                                e.target.value
-                                  ? parseFloat(e.target.value)
-                                  : undefined
+                                e.target.value ? parseFloat(e.target.value) : 0
                               )
                             }
                           />
@@ -641,7 +655,7 @@ export function CustomerForm({
 
                 <FormField
                   control={form.control}
-                  name="project_period"
+                  name="projectPeriod"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>사업기간</FormLabel>
@@ -652,20 +666,54 @@ export function CustomerForm({
                     </FormItem>
                   )}
                 />
+              </TabsContent>
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>비고</FormLabel>
-                      <FormControl>
-                        <Textarea {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <TabsContent value="electricity" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="januaryElectricUsage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>1월 전기사용량 (kWh) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value ? parseFloat(e.target.value) : 0
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="augustElectricUsage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>8월 전기사용량 (kWh) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            onChange={(e) =>
+                              field.onChange(
+                                e.target.value ? parseFloat(e.target.value) : 0
+                              )
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
 

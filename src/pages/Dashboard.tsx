@@ -42,33 +42,27 @@ export function Dashboard() {
   ];
 
   const recentCustomers = [
-    { company: "삼성전자", status: "contract", salesRep: "김영업" },
-    { company: "LG화학", status: "survey", salesRep: "이영업" },
-    { company: "현대자동차", status: "feasibility", salesRep: "박영업" },
+    { company: "삼성전자", status: "IN_PROGRESS", salesRep: "김영업" },
+    { company: "LG화학", status: "REQUESTED", salesRep: "이영업" },
+    { company: "현대자동차", status: "COMPLETE", salesRep: "박영업" },
   ];
 
   const getStatusText = (status: string) => {
     const statusMap = {
-      feasibility: "타당성 검토",
-      survey: "실사",
-      report: "실사보고서",
-      contract: "계약",
-      construction: "시공",
-      confirmation: "사업확인서",
-      settlement: "수수료 정산",
+      REQUESTED: "의뢰",
+      IN_PROGRESS: "진행중",
+      COMPLETE: "완료",
+      REJECTED: "반려",
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
 
   const getStatusColor = (status: string) => {
     const colorMap = {
-      feasibility: "bg-gray-100 text-gray-800",
-      survey: "bg-blue-100 text-blue-800",
-      report: "bg-yellow-100 text-yellow-800",
-      contract: "bg-green-100 text-green-800",
-      construction: "bg-purple-100 text-purple-800",
-      confirmation: "bg-indigo-100 text-indigo-800",
-      settlement: "bg-emerald-100 text-emerald-800",
+      REQUESTED: "bg-gray-100 text-gray-800",
+      IN_PROGRESS: "bg-blue-100 text-blue-800",
+      COMPLETE: "bg-green-100 text-green-800",
+      REJECTED: "bg-red-100 text-red-800",
     };
     return (
       colorMap[status as keyof typeof colorMap] || "bg-gray-100 text-gray-800"

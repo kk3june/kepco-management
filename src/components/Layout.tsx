@@ -18,7 +18,7 @@ interface LayoutProps {
 
 const navigation = [
   { name: "대시보드", href: "/", icon: LayoutDashboard },
-  { name: "영업자 관리", href: "/sales-reps", icon: Users },
+  { name: "영업자 관리", href: "/salesmans", icon: Users },
   { name: "기술사 관리", href: "/engineers", icon: HardHat },
   { name: "수용가 관리", href: "/customers", icon: Building2 },
 ];
