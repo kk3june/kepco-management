@@ -17,13 +17,18 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { API_ENDPOINTS, apiClient } from "@/lib/api";
-import { Customer } from "@/types/database";
+import {
+  ApiResponse,
+  Customer,
+  CustomerListItem,
+  CustomerResponse,
+} from "@/types/database";
 import { Building2, Edit, Eye, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 export function Customers() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
@@ -34,7 +39,7 @@ export function Customers() {
 
   const fetchCustomers = async () => {
     try {
-      const response = await apiClient.get<Customer[]>(
+      const response = await apiClient.get<ApiResponse<CustomerResponse>>(
         API_ENDPOINTS.CUSTOMERS.LIST
       );
 
@@ -43,7 +48,7 @@ export function Customers() {
         return;
       }
 
-      setCustomers(response.data || []);
+      setCustomers(response.data?.data?.customerList || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -56,8 +61,16 @@ export function Customers() {
     setIsFormOpen(true);
   };
 
-  const handleEdit = (customer: Customer) => {
-    setEditingCustomer(customer);
+  const handleEdit = async (customerId: number) => {
+    const response = await apiClient.get<ApiResponse<Customer>>(
+      API_ENDPOINTS.CUSTOMERS.GET(customerId.toString())
+    );
+
+    if (response.error) {
+      console.error("Error fetching customer:", response.error);
+      return;
+    }
+    setEditingCustomer(response.data?.data || null);
     setIsFormOpen(true);
   };
 
@@ -92,7 +105,7 @@ export function Customers() {
       if (editingCustomer) {
         // 수정
         const response = await apiClient.put(
-          API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.id),
+          API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.id.toString()),
           data
         );
 
@@ -123,26 +136,28 @@ export function Customers() {
 
   const getStatusText = (status: string) => {
     const statusMap = {
-      feasibility: "타당성 검토",
-      survey: "실사",
-      report: "실사보고서",
-      contract: "계약",
-      construction: "시공",
-      confirmation: "사업확인서",
-      settlement: "수수료 정산",
+      REQUESTED: "의뢰",
+      FEASIBILITY: "타당성 검토",
+      SURVEY: "실사",
+      REPORT: "실사보고서",
+      CONTRACT: "계약",
+      CONSTRUCTION: "시공",
+      CONFIRMATION: "사업확인서",
+      SETTLEMENT: "수수료 정산",
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
 
   const getStatusColor = (status: string) => {
     const colorMap = {
-      feasibility: "bg-gray-100 text-gray-800",
-      survey: "bg-blue-100 text-blue-800",
-      report: "bg-yellow-100 text-yellow-800",
-      contract: "bg-green-100 text-green-800",
-      construction: "bg-purple-100 text-purple-800",
-      confirmation: "bg-indigo-100 text-indigo-800",
-      settlement: "bg-emerald-100 text-emerald-800",
+      REQUESTED: "bg-gray-100 text-gray-800",
+      FEASIBILITY: "bg-blue-100 text-blue-800",
+      SURVEY: "bg-yellow-100 text-yellow-800",
+      REPORT: "bg-orange-100 text-orange-800",
+      CONTRACT: "bg-green-100 text-green-800",
+      CONSTRUCTION: "bg-purple-100 text-purple-800",
+      CONFIRMATION: "bg-indigo-100 text-indigo-800",
+      SETTLEMENT: "bg-emerald-100 text-emerald-800",
     };
     return (
       colorMap[status as keyof typeof colorMap] || "bg-gray-100 text-gray-800"
@@ -151,10 +166,10 @@ export function Customers() {
 
   const getBuildingTypeText = (type: string) => {
     const typeMap = {
-      factory: "공장",
-      mixed_building: "집합건물",
-      office: "사옥",
-      residential: "주상복합/아파트",
+      FACTORY: "공장",
+      MIXED_BUILDING: "집합건물",
+      OFFICE: "사옥",
+      RESIDENTIAL: "주상복합/아파트",
     };
     return typeMap[type as keyof typeof typeMap] || type;
   };
@@ -203,67 +218,71 @@ export function Customers() {
                   <TableHead>업체명</TableHead>
                   <TableHead>대표자</TableHead>
                   <TableHead>건물형태</TableHead>
-                  <TableHead>담당 영업자</TableHead>
-                  <TableHead>담당 기술사</TableHead>
+                  <TableHead>담당 영업자 ID</TableHead>
+                  <TableHead>담당 기술사 ID</TableHead>
                   <TableHead>진행상황</TableHead>
                   <TableHead>연락처</TableHead>
                   <TableHead className="text-right">작업</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
-                  <TableRow key={customer.id}>
+                {customers.map((customer, index) => (
+                  <TableRow key={customer.customerId || `temp-${index}`}>
                     <TableCell className="font-medium">
                       <div className="flex items-center">
                         <Building2 className="mr-2 h-4 w-4 text-gray-400" />
-                        {customer.company_name}
+                        {customer.companyName}
                       </div>
                     </TableCell>
                     <TableCell>{customer.representative}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
-                        {getBuildingTypeText(customer.building_type)}
+                        {getBuildingTypeText(customer.buildingType || "")}
                       </Badge>
                     </TableCell>
-                    <TableCell>{customer.sales_rep?.name || "-"}</TableCell>
-                    <TableCell>{customer.engineer?.name || "-"}</TableCell>
+                    <TableCell>{customer.salesmanName || "-"}</TableCell>
+                    <TableCell>{customer.engineerName || "-"}</TableCell>
                     <TableCell>
                       <Badge
-                        className={getStatusColor(customer.progress_status)}
+                        className={getStatusColor(
+                          customer.progressStatus || ""
+                        )}
                       >
-                        {getStatusText(customer.progress_status)}
+                        {getStatusText(customer.progressStatus || "")}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         <div className="flex items-center text-sm">
                           <Phone className="mr-1 h-3 w-3" />
-                          {customer.mobile_phone}
+                          {customer.companyPhone}
                         </div>
                         <div className="flex items-center text-sm text-gray-500">
                           <Mail className="mr-1 h-3 w-3" />
-                          {customer.email}
+                          {customer.companyEmail}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
                         <Button variant="ghost" size="sm" asChild>
-                          <Link to={`/customers/${customer.id}`}>
+                          <Link to={`/customers/${customer.customerId}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(customer)}
+                          onClick={() => handleEdit(customer.customerId)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(customer.id)}
+                          onClick={() =>
+                            handleDelete(customer.customerId.toString())
+                          }
                           className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />

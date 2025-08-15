@@ -23,107 +23,134 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { SalesRep } from "@/types/database";
+import { Salesman, SalesmanRequest } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
-const salesRepSchema = z.object({
+const salesmanSchema = z.object({
+  username: z.string().min(1, "사용자명을 입력해주세요"),
+  password: z.string().min(1, "비밀번호를 입력해주세요"),
   name: z.string().min(1, "이름을 입력해주세요"),
   phone: z.string().min(1, "연락처를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
-  commission_rate: z.number().min(0).max(100),
   address: z.string().min(1, "주소를 입력해주세요"),
-  settlement_method: z.enum(["invoice", "withholding"]),
-  bank_name: z.string().min(1, "은행명을 입력해주세요"),
-  account_number: z.string().min(1, "계좌번호를 입력해주세요"),
-  business_number: z.string().optional(),
-  business_type: z.string().optional(),
-  business_category: z.string().optional(),
+  commissionRate: z.number().min(0).max(100),
+  settlementMethod: z.enum(["INVOICE", "WITHHOLDING_TAX"]),
+  bankName: z.string().min(1, "은행명을 입력해주세요"),
+  bankAccount: z.string().min(1, "계좌번호를 입력해주세요"),
+  businessNumber: z.string().optional(),
   representative: z.string().optional(),
-  business_address: z.string().optional(),
+  businessItem: z.string().optional(),
+  businessType: z.string().optional(),
+  businessAddress: z.string().optional(),
 });
 
-type SalesRepFormData = z.infer<typeof salesRepSchema>;
+type SalesmanFormData = z.infer<typeof salesmanSchema>;
 
-interface SalesRepFormProps {
+interface SalesmanFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  salesRep: SalesRep | null;
-  onSubmit: (data: Omit<SalesRep, "id" | "created_at" | "updated_at">) => void;
+  salesman: Salesman | null;
+  onSubmit: (data: SalesmanRequest) => void;
 }
 
-export function SalesRepForm({
+export function SalesmanForm({
   open,
   onOpenChange,
-  salesRep,
+  salesman,
   onSubmit,
-}: SalesRepFormProps) {
-  const form = useForm<SalesRepFormData>({
-    resolver: zodResolver(salesRepSchema),
+}: SalesmanFormProps) {
+  const form = useForm<SalesmanFormData>({
+    resolver: zodResolver(salesmanSchema),
     defaultValues: {
+      username: "",
+      password: "",
       name: "",
       phone: "",
       email: "",
-      commission_rate: 0,
       address: "",
-      settlement_method: "invoice",
-      bank_name: "",
-      account_number: "",
-      business_number: "",
-      business_type: "",
-      business_category: "",
+      commissionRate: 0,
+      settlementMethod: "INVOICE",
+      bankName: "",
+      bankAccount: "",
+      businessNumber: "",
       representative: "",
-      business_address: "",
+      businessItem: "",
+      businessType: "",
+      businessAddress: "",
     },
   });
 
   useEffect(() => {
-    if (salesRep) {
+    if (salesman) {
       form.reset({
-        name: salesRep.name,
-        phone: salesRep.phone,
-        email: salesRep.email,
-        commission_rate: salesRep.commission_rate,
-        address: salesRep.address,
-        settlement_method: salesRep.settlement_method,
-        bank_name: salesRep.bank_name,
-        account_number: salesRep.account_number,
-        business_number: salesRep.business_number || "",
-        business_type: salesRep.business_type || "",
-        business_category: salesRep.business_category || "",
-        representative: salesRep.representative || "",
-        business_address: salesRep.business_address || "",
+        username: "", // 기존 Salesman에는 username이 없음
+        password: "", // 기존 Salesman에는 password가 없음
+        name: salesman.name || "",
+        phone: salesman.phoneNumber || "", // phoneNumber를 phone으로 매핑
+        email: salesman.email || "",
+        address: salesman.address || "",
+        commissionRate: salesman.commissionRate,
+        settlementMethod: salesman.settlementMethod,
+        bankName: salesman.bankName || "",
+        bankAccount: salesman.bankAccount || "",
+        businessNumber: salesman.businessNumber || "",
+        representative: salesman.representative || "",
+        businessItem: salesman.business_category || "", // business_category를 businessItem으로 매핑
+        businessType: salesman.business_type || "", // business_type을 businessType으로 매핑
+        businessAddress: salesman.business_address || "", // business_address를 businessAddress로 매핑
       });
     } else {
       form.reset({
+        username: "",
+        password: "",
         name: "",
         phone: "",
         email: "",
-        commission_rate: 0,
         address: "",
-        settlement_method: "invoice",
-        bank_name: "",
-        account_number: "",
-        business_number: "",
-        business_type: "",
-        business_category: "",
+        commissionRate: 0,
+        settlementMethod: "INVOICE",
+        bankName: "",
+        bankAccount: "",
+        businessNumber: "",
         representative: "",
-        business_address: "",
+        businessItem: "",
+        businessType: "",
+        businessAddress: "",
       });
     }
-  }, [salesRep, form]);
+  }, [salesman, form]);
 
-  const handleSubmit = (data: SalesRepFormData) => {
-    onSubmit(data);
+  const handleSubmit = (data: SalesmanFormData) => {
+    // 폼 데이터를 SalesmanRequest 타입으로 변환
+    const transformedData: SalesmanRequest = {
+      username: data.username,
+      password: data.password,
+      name: data.name,
+      phone: data.phone,
+      email: data.email,
+      address: data.address,
+      commissionRate: data.commissionRate,
+      settlementMethod: data.settlementMethod,
+      bankName: data.bankName,
+      bankAccount: data.bankAccount,
+      businessNumber: data.businessNumber,
+      representative: data.representative,
+      businessItem: data.businessItem,
+      businessType: data.businessType,
+      businessAddress: data.businessAddress,
+    };
+
+    onSubmit(transformedData);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{salesRep ? "영업자 수정" : "영업자 추가"}</DialogTitle>
+          <DialogTitle>{salesman ? "영업자 수정" : "영업자 추가"}</DialogTitle>
           <DialogDescription>
             영업자 정보를 입력해주세요. *는 필수 입력 항목입니다.
           </DialogDescription>
@@ -137,6 +164,36 @@ export function SalesRepForm({
             {/* 기본 정보 */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">기본 정보</h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>사용자명 *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>비밀번호 *</FormLabel>
+                      <FormControl>
+                        <Input {...field} type="password" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -204,7 +261,7 @@ export function SalesRepForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="commission_rate"
+                  name="commissionRate"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>수수료율 (%) *</FormLabel>
@@ -225,7 +282,7 @@ export function SalesRepForm({
 
                 <FormField
                   control={form.control}
-                  name="settlement_method"
+                  name="settlementMethod"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>정산방법 *</FormLabel>
@@ -239,8 +296,10 @@ export function SalesRepForm({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="invoice">계산서</SelectItem>
-                          <SelectItem value="withholding">원천징수</SelectItem>
+                          <SelectItem value="INVOICE">계산서</SelectItem>
+                          <SelectItem value="WITHHOLDING_TAX">
+                            원천징수
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -252,7 +311,7 @@ export function SalesRepForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="bank_name"
+                  name="bankName"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>은행명 *</FormLabel>
@@ -266,7 +325,7 @@ export function SalesRepForm({
 
                 <FormField
                   control={form.control}
-                  name="account_number"
+                  name="bankAccount"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>계좌번호 *</FormLabel>
@@ -287,7 +346,7 @@ export function SalesRepForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="business_number"
+                  name="businessNumber"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>사업자등록번호</FormLabel>
@@ -317,10 +376,10 @@ export function SalesRepForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="business_type"
+                  name="businessType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>업종</FormLabel>
+                      <FormLabel>업태</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -331,10 +390,10 @@ export function SalesRepForm({
 
                 <FormField
                   control={form.control}
-                  name="business_category"
+                  name="businessItem"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>업태</FormLabel>
+                      <FormLabel>업종</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -346,7 +405,7 @@ export function SalesRepForm({
 
               <FormField
                 control={form.control}
-                name="business_address"
+                name="businessAddress"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>사업장 주소</FormLabel>
@@ -367,7 +426,7 @@ export function SalesRepForm({
               >
                 취소
               </Button>
-              <Button type="submit">{salesRep ? "수정" : "추가"}</Button>
+              <Button type="submit">{salesman ? "수정" : "추가"}</Button>
             </div>
           </form>
         </Form>

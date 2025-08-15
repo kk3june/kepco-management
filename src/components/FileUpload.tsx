@@ -13,7 +13,7 @@ import { AlertCircle, File, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface FileUploadProps {
-  customerId: string;
+  customerId: number;
   documentType:
     | "business_license"
     | "electrical_diagram"

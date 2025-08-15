@@ -3,7 +3,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CustomerDetail } from "@/pages/CustomerDetail";
 import { Customers } from "@/pages/Customers";
 import { Engineers } from "@/pages/Engineers";
-import { SalesReps } from "@/pages/SalesReps";
+import { Salesmans } from "@/pages/Salesmans";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import "./App.css";
 import { AuthProvider } from "./lib/auth";
@@ -23,7 +23,7 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/sales-reps" element={<SalesReps />} />
+                    <Route path="/salesmans" element={<Salesmans />} />
                     <Route path="/engineers" element={<Engineers />} />
                     <Route path="/customers" element={<Customers />} />
                     <Route path="/customers/:id" element={<CustomerDetail />} />
