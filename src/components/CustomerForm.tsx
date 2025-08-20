@@ -25,6 +25,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
 import { API_ENDPOINTS, apiClient, ApiResponse } from "@/lib/api";
+import { formatBusinessNumber, formatPhoneNumber } from "@/lib/utils";
 import {
   Customer,
   Engineer,
@@ -203,7 +204,7 @@ export function CustomerForm({
       API_ENDPOINTS.ENGINEERS.LIST
     );
     if (response.data) {
-      setEngineers(response.data.data?.engineerList || []);
+      setEngineers(response.data.data?.adminEngineerList || []);
     }
   };
 
@@ -273,7 +274,15 @@ export function CustomerForm({
                       <FormItem>
                         <FormLabel>사업자등록번호 *</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="123-45-67890" />
+                          <Input
+                            {...field}
+                            placeholder="123-45-67890"
+                            onChange={(e) =>
+                              field.onChange(
+                                formatBusinessNumber(e.target.value)
+                              )
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -386,15 +395,22 @@ export function CustomerForm({
                       <FormItem>
                         <FormLabel>회사전화 *</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="02-1234-5678" />
+                          <Input
+                            {...field}
+                            placeholder="02-1234-5678"
+                            value={
+                              field.value ? formatPhoneNumber(field.value) : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(formatPhoneNumber(e.target.value))
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
                     name="phoneNumber"
@@ -402,7 +418,16 @@ export function CustomerForm({
                       <FormItem>
                         <FormLabel>휴대전화 *</FormLabel>
                         <FormControl>
-                          <Input {...field} placeholder="010-1234-5678" />
+                          <Input
+                            {...field}
+                            placeholder="010-1234-5678"
+                            value={
+                              field.value ? formatPhoneNumber(field.value) : ""
+                            }
+                            onChange={(e) =>
+                              field.onChange(formatPhoneNumber(e.target.value))
+                            }
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>

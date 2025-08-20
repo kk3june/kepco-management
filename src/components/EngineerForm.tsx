@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/Form";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { formatPhoneNumber } from "@/lib/utils";
 import { Engineer, EngineerRequest } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
@@ -23,8 +24,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const engineerSchema = z.object({
-  username: z.string().min(1, "아이디를 입력해주세요"),
-  password: z.string().min(1, "비밀번호를 입력해주세요"),
+  userId: z.string().min(1, "아이디를 입력해주세요"),
+  userPw: z.string().min(1, "비밀번호를 입력해주세요"),
   name: z.string().min(1, "이름을 입력해주세요"),
   phone: z.string().min(1, "연락처를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
@@ -49,8 +50,8 @@ export function EngineerForm({
   const form = useForm<EngineerFormData>({
     resolver: zodResolver(engineerSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      userId: "",
+      userPw: "",
       name: "",
       phone: "",
       email: "",
@@ -61,8 +62,8 @@ export function EngineerForm({
   useEffect(() => {
     if (engineer) {
       form.reset({
-        username: engineer.id.toString() || "",
-        password: "",
+        userId: engineer.userId || "",
+        userPw: engineer.userPw || "",
         name: engineer.name || "",
         phone: engineer.phoneNumber || "",
         email: engineer.email || "",
@@ -70,8 +71,8 @@ export function EngineerForm({
       });
     } else {
       form.reset({
-        username: "",
-        password: "",
+        userId: "",
+        userPw: "",
         name: "",
         phone: "",
         email: "",
@@ -99,7 +100,7 @@ export function EngineerForm({
           >
             <FormField
               control={form.control}
-              name="username"
+              name="userId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>아이디 *</FormLabel>
@@ -113,7 +114,7 @@ export function EngineerForm({
 
             <FormField
               control={form.control}
-              name="password"
+              name="userPw"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>비밀번호 *</FormLabel>
@@ -146,7 +147,14 @@ export function EngineerForm({
                 <FormItem>
                   <FormLabel>연락처 *</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="010-1234-5678" />
+                    <Input
+                      {...field}
+                      placeholder="010-1234-5678"
+                      value={field.value ? formatPhoneNumber(field.value) : ""}
+                      onChange={(e) =>
+                        field.onChange(formatPhoneNumber(e.target.value))
+                      }
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

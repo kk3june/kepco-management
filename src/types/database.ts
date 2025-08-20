@@ -5,8 +5,8 @@ export interface ApiResponse<T> {
 }
 
 export interface SalesmanRequest {
-  username: string;
-  password: string;
+  userId: string;
+  userPw: string;
   name: string;
   phone: string;
   email: string;
@@ -28,6 +28,8 @@ export interface SalesmanResponse {
 
 export interface Salesman {
   id: number;
+  userId: string;
+  userPw: string;
   name: string | null;
   phoneNumber: string;
   email: string;
@@ -44,8 +46,8 @@ export interface Salesman {
 }
 
 export interface EngineerRequest {
-  username: string;
-  password: string;
+  userId: string;
+  userPw: string;
   name: string;
   phone: string;
   email: string;
@@ -53,7 +55,9 @@ export interface EngineerRequest {
 }
 export interface Engineer {
   id: number;
-  name: string | null;
+  userId: string;
+  userPw: string;
+  name: string;
   phoneNumber: string;
   email: string;
   address: string;
