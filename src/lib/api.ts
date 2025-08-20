@@ -164,9 +164,9 @@ export const API_ENDPOINTS = {
   ENGINEERS: {
     LIST: "/api/home/admin-engineer",
     CREATE: "/api/engineer/register",
-    UPDATE: (id: string) => `/api/engineers/${id}`,
-    DELETE: (id: string) => `/api/engineers/${id}`,
-    GET: (id: string) => `/api/engineers/${id}`,
+    UPDATE: (id: string) => `/api/engineer/${id}`,
+    DELETE: (id: string) => `/api/engineer/${id}`,
+    GET: (id: string) => `/api/engineer/${id}`,
   },
 
   // 고객

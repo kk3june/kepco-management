@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { formatBusinessNumber, formatPhoneNumber } from "@/lib/utils";
 import { Salesman, SalesmanRequest } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
@@ -30,8 +31,8 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const salesmanSchema = z.object({
-  username: z.string().min(1, "사용자명을 입력해주세요"),
-  password: z.string().min(1, "비밀번호를 입력해주세요"),
+  userId: z.string().min(1, "사용자명을 입력해주세요"),
+  userPw: z.string().min(1, "비밀번호를 입력해주세요"),
   name: z.string().min(1, "이름을 입력해주세요"),
   phone: z.string().min(1, "연락처를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
@@ -65,8 +66,8 @@ export function SalesmanForm({
   const form = useForm<SalesmanFormData>({
     resolver: zodResolver(salesmanSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      userId: "",
+      userPw: "",
       name: "",
       phone: "",
       email: "",
@@ -86,8 +87,8 @@ export function SalesmanForm({
   useEffect(() => {
     if (salesman) {
       form.reset({
-        username: "", // 기존 Salesman에는 username이 없음
-        password: "", // 기존 Salesman에는 password가 없음
+        userId: salesman.userId || "",
+        userPw: salesman.userPw || "",
         name: salesman.name || "",
         phone: salesman.phoneNumber || "", // phoneNumber를 phone으로 매핑
         email: salesman.email || "",
@@ -104,8 +105,8 @@ export function SalesmanForm({
       });
     } else {
       form.reset({
-        username: "",
-        password: "",
+        userId: "",
+        userPw: "",
         name: "",
         phone: "",
         email: "",
@@ -126,8 +127,8 @@ export function SalesmanForm({
   const handleSubmit = (data: SalesmanFormData) => {
     // 폼 데이터를 SalesmanRequest 타입으로 변환
     const transformedData: SalesmanRequest = {
-      username: data.username,
-      password: data.password,
+      userId: data.userId,
+      userPw: data.userPw,
       name: data.name,
       phone: data.phone,
       email: data.email,
@@ -168,10 +169,10 @@ export function SalesmanForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="username"
+                  name="userId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>사용자명 *</FormLabel>
+                      <FormLabel>아이디 *</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -182,7 +183,7 @@ export function SalesmanForm({
 
                 <FormField
                   control={form.control}
-                  name="password"
+                  name="userPw"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>비밀번호 *</FormLabel>
@@ -217,7 +218,16 @@ export function SalesmanForm({
                     <FormItem>
                       <FormLabel>연락처 *</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="010-1234-5678" />
+                        <Input
+                          {...field}
+                          placeholder="010-1234-5678"
+                          value={
+                            field.value ? formatPhoneNumber(field.value) : ""
+                          }
+                          onChange={(e) =>
+                            field.onChange(formatPhoneNumber(e.target.value))
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -351,7 +361,16 @@ export function SalesmanForm({
                     <FormItem>
                       <FormLabel>사업자등록번호</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="123-45-67890" />
+                        <Input
+                          {...field}
+                          placeholder="123-45-67890"
+                          value={
+                            field.value ? formatBusinessNumber(field.value) : ""
+                          }
+                          onChange={(e) =>
+                            field.onChange(formatBusinessNumber(e.target.value))
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
