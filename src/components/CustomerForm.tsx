@@ -7,7 +7,6 @@ import {
   DialogTitle,
 } from "@/components/ui/Dialog";
 import {
-  Form,
   FormControl,
   FormField,
   FormItem,
@@ -25,7 +24,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
 import { API_ENDPOINTS, apiClient, ApiResponse } from "@/lib/api";
-import { formatBusinessNumber, formatPhoneNumber } from "@/lib/utils";
+import {
+  formatBusinessNumber,
+  formatPhoneNumber,
+  formatUserId,
+  validateUserId,
+} from "@/lib/utils";
 import {
   Customer,
   Engineer,
@@ -35,7 +39,7 @@ import {
 } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { FormProvider, useForm } from "react-hook-form";
 import * as z from "zod";
 
 const customerSchema = z.object({
@@ -49,7 +53,15 @@ const customerSchema = z.object({
   companyPhone: z.string().min(1, "회사전화를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   phoneNumber: z.string().min(1, "휴대전화를 입력해주세요"),
-  powerPlannerId: z.string().min(1, "한전파워플래너 아이디를 입력해주세요"),
+  powerPlannerId: z
+    .string()
+    .min(1, "한전파워플래너 아이디를 입력해주세요")
+    .min(3, "아이디는 3자 이상이어야 합니다")
+    .max(20, "아이디는 20자 이하여야 합니다")
+    .refine(
+      validateUserId,
+      "아이디는 영문 소문자, 숫자, 특수문자(_-.)만 사용 가능합니다"
+    ),
   powerPlannerPassword: z
     .string()
     .min(1, "한전파워플래너 패스워드를 입력해주세요"),
@@ -65,8 +77,8 @@ const customerSchema = z.object({
   ]),
   januaryElectricUsage: z.number().min(0, "1월 전기사용량을 입력해주세요"),
   augustElectricUsage: z.number().min(0, "8월 전기사용량을 입력해주세요"),
-  salesmanId: z.number().min(1, "담당 영업자를 선택해주세요"),
-  engineerId: z.number().min(0, "담당 기술사를 선택해주세요"),
+  salesmanId: z.number().min(0, "담당 영업자를 선택해주세요").optional(),
+  engineerId: z.number().min(0, "담당 기술사를 선택해주세요").optional(),
   projectCost: z.number().min(0, "사업비용을 입력해주세요"),
   electricitySavingRate: z.number().min(0, "전기요금 절감율을 입력해주세요"),
   subsidy: z.number().min(0, "보조금을 입력해주세요"),
@@ -84,7 +96,7 @@ interface CustomerFormProps {
   onSubmit: (
     data: Omit<
       Customer,
-      "id" | "created_at" | "updated_at" | "sales_rep" | "engineer"
+      "id" | "createdAt" | "updatedAt" | "salesmanId" | "engineerId"
     >
   ) => void;
 }
@@ -136,6 +148,7 @@ export function CustomerForm({
 
   useEffect(() => {
     if (customer) {
+      console.log("Setting form data for customer:", customer);
       form.reset({
         companyName: customer.companyName || "",
         representative: customer.representative || "",
@@ -162,6 +175,7 @@ export function CustomerForm({
         tenantFactory: customer.tenantFactory || false,
       });
     } else {
+      console.log("Resetting form for new customer");
       form.reset({
         companyName: "",
         representative: "",
@@ -191,25 +205,45 @@ export function CustomerForm({
   }, [customer, form]);
 
   const fetchSalesmans = async () => {
-    const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
-      API_ENDPOINTS.SALES_REPS.LIST
-    );
-    if (response.data) {
-      setSalesmans(response.data.data?.adminSalesmanList || []);
+    try {
+      const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
+        API_ENDPOINTS.SALES_REPS.LIST
+      );
+      if (response.data) {
+        setSalesmans(response.data.data?.adminSalesmanList || []);
+      }
+    } catch (error) {
+      console.error("Error fetching salesmans:", error);
     }
   };
 
   const fetchEngineers = async () => {
-    const response = await apiClient.get<ApiResponse<EngineerResponse>>(
-      API_ENDPOINTS.ENGINEERS.LIST
-    );
-    if (response.data) {
-      setEngineers(response.data.data?.adminEngineerList || []);
+    try {
+      const response = await apiClient.get<ApiResponse<EngineerResponse>>(
+        API_ENDPOINTS.ENGINEERS.LIST
+      );
+      if (response.data) {
+        setEngineers(response.data.data?.adminEngineerList || []);
+      }
+    } catch (error) {
+      console.error("Error fetching engineers:", error);
     }
   };
 
-  const handleSubmit = (data: CustomerFormData) => {
-    onSubmit(data);
+  const onFormSubmit = form.handleSubmit(
+    (data) => {
+      console.log("✅ Form submitted successfully with data:", data);
+      onSubmit(data);
+    },
+    (errors) => {
+      console.log("❌ Form validation errors:", errors);
+    }
+  );
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("🔄 Form submit triggered");
+    onFormSubmit(e);
   };
 
   return (
@@ -222,11 +256,8 @@ export function CustomerForm({
           </DialogDescription>
         </DialogHeader>
 
-        <Form form={form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
-          >
+        <FormProvider {...form}>
+          <form onSubmit={handleFormSubmit} className="space-y-6">
             <Tabs defaultValue="basic" className="w-full">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic">기본 정보</TabsTrigger>
@@ -297,7 +328,7 @@ export function CustomerForm({
                         <FormLabel>건물형태 *</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -459,7 +490,16 @@ export function CustomerForm({
                         <FormItem>
                           <FormLabel>아이디 *</FormLabel>
                           <FormControl>
-                            <Input {...field} />
+                            <Input
+                              {...field}
+                              placeholder="영문 소문자, 숫자, 특수문자(_-.)"
+                              value={
+                                field.value ? formatUserId(field.value) : ""
+                              }
+                              onChange={(e) =>
+                                field.onChange(formatUserId(e.target.value))
+                              }
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -495,7 +535,7 @@ export function CustomerForm({
                           onValueChange={(value) =>
                             field.onChange(parseInt(value))
                           }
-                          defaultValue={field.value?.toString()}
+                          value={field.value?.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -528,7 +568,7 @@ export function CustomerForm({
                           onValueChange={(value) =>
                             field.onChange(parseInt(value))
                           }
-                          defaultValue={field.value?.toString()}
+                          value={field.value?.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -562,7 +602,7 @@ export function CustomerForm({
                         <FormLabel>진행상황 *</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
+                          value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -591,7 +631,7 @@ export function CustomerForm({
                           onValueChange={(value) =>
                             field.onChange(value === "true")
                           }
-                          defaultValue={field.value?.toString()}
+                          value={field.value?.toString()}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -753,7 +793,7 @@ export function CustomerForm({
               <Button type="submit">{customer ? "수정" : "추가"}</Button>
             </div>
           </form>
-        </Form>
+        </FormProvider>
       </DialogContent>
     </Dialog>
   );
