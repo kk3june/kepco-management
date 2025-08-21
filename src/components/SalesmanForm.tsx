@@ -23,7 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
-import { formatBusinessNumber, formatPhoneNumber } from "@/lib/utils";
+import {
+  formatBusinessNumber,
+  formatPhoneNumber,
+  formatUserId,
+  validateUserId,
+} from "@/lib/utils";
 import { Salesman, SalesmanRequest } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect } from "react";
@@ -31,13 +36,21 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 const salesmanSchema = z.object({
-  userId: z.string().min(1, "사용자명을 입력해주세요"),
-  userPw: z.string().min(1, "비밀번호를 입력해주세요"),
+  username: z
+    .string()
+    .min(1, "아이디를 입력해주세요")
+    .min(3, "아이디는 3자 이상이어야 합니다")
+    .max(20, "아이디는 20자 이하여야 합니다")
+    .refine(
+      validateUserId,
+      "아이디는 영문 소문자, 숫자, 특수문자(_-.)만 사용 가능합니다"
+    ),
+  password: z.string().min(1, "비밀번호를 입력해주세요"),
   name: z.string().min(1, "이름을 입력해주세요"),
   phone: z.string().min(1, "연락처를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   address: z.string().min(1, "주소를 입력해주세요"),
-  commissionRate: z.number().min(0).max(100),
+  commissionRate: z.number().min(0, "수수료율을 입력해주세요"),
   settlementMethod: z.enum(["INVOICE", "WITHHOLDING_TAX"]),
   bankName: z.string().min(1, "은행명을 입력해주세요"),
   bankAccount: z.string().min(1, "계좌번호를 입력해주세요"),
@@ -66,8 +79,8 @@ export function SalesmanForm({
   const form = useForm<SalesmanFormData>({
     resolver: zodResolver(salesmanSchema),
     defaultValues: {
-      userId: "",
-      userPw: "",
+      username: "",
+      password: "",
       name: "",
       phone: "",
       email: "",
@@ -87,8 +100,8 @@ export function SalesmanForm({
   useEffect(() => {
     if (salesman) {
       form.reset({
-        userId: salesman.userId || "",
-        userPw: salesman.userPw || "",
+        username: salesman.userId || "",
+        password: salesman.userPw || "",
         name: salesman.name || "",
         phone: salesman.phoneNumber || "", // phoneNumber를 phone으로 매핑
         email: salesman.email || "",
@@ -105,8 +118,8 @@ export function SalesmanForm({
       });
     } else {
       form.reset({
-        userId: "",
-        userPw: "",
+        username: "",
+        password: "",
         name: "",
         phone: "",
         email: "",
@@ -127,8 +140,8 @@ export function SalesmanForm({
   const handleSubmit = (data: SalesmanFormData) => {
     // 폼 데이터를 SalesmanRequest 타입으로 변환
     const transformedData: SalesmanRequest = {
-      userId: data.userId,
-      userPw: data.userPw,
+      username: data.username,
+      password: data.password,
       name: data.name,
       phone: data.phone,
       email: data.email,
@@ -169,12 +182,19 @@ export function SalesmanForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="userId"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>아이디 *</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input
+                          {...field}
+                          placeholder="영문 소문자, 숫자, 특수문자(_-.)"
+                          value={field.value ? formatUserId(field.value) : ""}
+                          onChange={(e) =>
+                            field.onChange(formatUserId(e.target.value))
+                          }
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -183,7 +203,7 @@ export function SalesmanForm({
 
                 <FormField
                   control={form.control}
-                  name="userPw"
+                  name="password"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>비밀번호 *</FormLabel>
