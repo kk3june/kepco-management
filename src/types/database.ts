@@ -98,8 +98,8 @@ export interface Customer {
   buildingType: BuildingType;
   januaryElectricUsage: number;
   augustElectricUsage: number;
-  salesmanId: number;
-  engineerId: number;
+  salesmanId: number | null;
+  engineerId: number | null;
   projectCost: number;
   electricitySavingRate: number;
   subsidy: number;

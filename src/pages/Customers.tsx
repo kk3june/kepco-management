@@ -21,6 +21,7 @@ import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import {
   ApiResponse,
+  BuildingType,
   Customer,
   CustomerListItem,
   CustomerRequest,
@@ -127,46 +128,94 @@ export function Customers() {
     }
   };
 
-  const handleFormSubmit = async (
-    data: Omit<
-      Customer,
-      "id" | "createdAt" | "updatedAt" | "salesmanId" | "engineerId"
-    >
-  ) => {
+  const handleFormSubmit = async (data: Customer, isEdit: boolean) => {
     try {
-      // API 요청에 필요한 형태로 데이터 변환
-      const requestData: CustomerRequest = {
-        ...data,
-        isTenantFactory: data.tenantFactory,
-        isDelete: false,
-        newAttachmentFileList: [],
-        deleteAttachmentFileList: [],
-        salesmanId: editingCustomer?.salesmanId || null,
-        engineerId: editingCustomer?.engineerId || null,
-      };
+      if (isEdit && editingCustomer) {
+        // 수정 API 요청 구조 (updateCustomer)
+        const updateRequestData: CustomerRequest = {
+          companyName: data.companyName,
+          representative: data.representative,
+          businessNumber: data.businessNumber,
+          businessType: data.businessType,
+          businessItem: data.businessItem,
+          businessAddress: data.businessAddress,
+          managerName: data.managerName,
+          companyPhone: data.companyPhone,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          powerPlannerId: data.powerPlannerId,
+          powerPlannerPassword: data.powerPlannerPassword,
+          buildingType: data.buildingType,
+          isTenantFactory: data.tenantFactory,
+          januaryElectricUsage: data.januaryElectricUsage,
+          augustElectricUsage: data.augustElectricUsage,
+          salesmanId: editingCustomer.salesmanId || null,
+          engineerId: editingCustomer.engineerId || null,
+          projectCost: data.projectCost,
+          electricitySavingRate: data.electricitySavingRate,
+          subsidy: data.subsidy,
+          projectPeriod: data.projectPeriod,
+          progressStatus: data.progressStatus,
+          isDelete: false,
+          newAttachmentFileList: [],
+          deleteAttachmentFileList: [],
+        };
 
-      if (editingCustomer) {
-        // 수정
         const response = await apiClient.patch(
           API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.customerId.toString()),
-          requestData
+          updateRequestData
         );
 
         if (response.error) {
           console.error("Error updating customer:", response.error);
+          toast.error("수정 실패", "수용가 수정 중 오류가 발생했습니다.");
           return;
         }
+
+        toast.success("수정 완료", "수용가가 성공적으로 수정되었습니다.");
       } else {
-        // 생성
+        // 생성 API 요청 구조 (generateCustomer)
+        const createRequestData: CustomerRequest = {
+          companyName: data.companyName,
+          representative: data.representative,
+          businessNumber: data.businessNumber,
+          businessType: data.businessType,
+          businessItem: data.businessItem,
+          businessAddress: data.businessAddress,
+          managerName: data.managerName,
+          companyPhone: data.companyPhone,
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          powerPlannerId: data.powerPlannerId,
+          powerPlannerPassword: data.powerPlannerPassword,
+          buildingType: data.buildingType,
+          isTenantFactory: data.tenantFactory,
+          januaryElectricUsage: data.januaryElectricUsage,
+          augustElectricUsage: data.augustElectricUsage,
+          salesmanId: data.salesmanId,
+          engineerId: data.engineerId,
+          projectCost: data.projectCost,
+          electricitySavingRate: data.electricitySavingRate,
+          subsidy: data.subsidy,
+          projectPeriod: data.projectPeriod,
+          progressStatus: data.progressStatus,
+          isDelete: false,
+          newAttachmentFileList: [],
+          deleteAttachmentFileList: [],
+        };
+
         const response = await apiClient.post(
           API_ENDPOINTS.CUSTOMERS.CREATE,
-          requestData
+          createRequestData
         );
 
         if (response.error) {
           console.error("Error creating customer:", response.error);
+          toast.error("생성 실패", "수용가 생성 중 오류가 발생했습니다.");
           return;
         }
+
+        toast.success("생성 완료", "수용가가 성공적으로 생성되었습니다.");
       }
 
       setIsFormOpen(false);
@@ -174,6 +223,10 @@ export function Customers() {
       fetchCustomers();
     } catch (error) {
       console.error("Error:", error);
+      toast.error(
+        isEdit ? "수정 실패" : "생성 실패",
+        "수용가 처리 중 오류가 발생했습니다. 다시 시도해주세요."
+      );
     }
   };
 
@@ -207,12 +260,16 @@ export function Customers() {
     );
   };
 
-  const getBuildingTypeText = (type: string) => {
+  const getBuildingTypeText = (type: BuildingType) => {
     const typeMap = {
       FACTORY: "공장",
-      MIXED_BUILDING: "집합건물",
-      OFFICE: "사옥",
-      RESIDENTIAL: "주상복합/아파트",
+      KNOWLEDGE_INDUSTRY_CENTER: "지식산업센터",
+      BUILDING: "건물",
+      MIXED_USE_COMPLEX: "복합단지",
+      APARTMENT_COMPLEX: "아파트단지",
+      SCHOOL: "학교",
+      HOTEL: "호텔",
+      OTHER: "기타",
     };
     return typeMap[type as keyof typeof typeMap] || type;
   };
