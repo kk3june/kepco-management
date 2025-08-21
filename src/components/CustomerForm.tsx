@@ -93,12 +93,7 @@ interface CustomerFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   customer: Customer | null;
-  onSubmit: (
-    data: Omit<
-      Customer,
-      "id" | "createdAt" | "updatedAt" | "salesmanId" | "engineerId"
-    >
-  ) => void;
+  onSubmit: (data: Customer, isEdit: boolean) => void;
 }
 
 export function CustomerForm({
@@ -110,7 +105,7 @@ export function CustomerForm({
   const [salesmans, setSalesmans] = useState<Salesman[]>([]);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
 
-  const form = useForm<CustomerFormData>({
+  const form = useForm<Customer>({
     resolver: zodResolver(customerSchema),
     defaultValues: {
       companyName: "",
@@ -128,8 +123,8 @@ export function CustomerForm({
       buildingType: "FACTORY",
       januaryElectricUsage: 0,
       augustElectricUsage: 0,
-      salesmanId: 0,
-      engineerId: 0,
+      salesmanId: null,
+      engineerId: null,
       projectCost: 0,
       electricitySavingRate: 0,
       subsidy: 0,
@@ -175,7 +170,6 @@ export function CustomerForm({
         tenantFactory: customer.tenantFactory || false,
       });
     } else {
-      console.log("Resetting form for new customer");
       form.reset({
         companyName: "",
         representative: "",
@@ -233,7 +227,12 @@ export function CustomerForm({
   const onFormSubmit = form.handleSubmit(
     (data) => {
       console.log("✅ Form submitted successfully with data:", data);
-      onSubmit(data);
+      const normalizedData: Customer = {
+        ...data,
+        salesmanId: data.salesmanId ?? null,
+        engineerId: data.engineerId ?? null,
+      };
+      onSubmit(normalizedData, !!customer);
     },
     (errors) => {
       console.log("❌ Form validation errors:", errors);
