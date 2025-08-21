@@ -75,10 +75,10 @@ class ApiClient {
     });
   }
 
-  // PUT 요청
-  async put<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
+  // PATCH 요청
+  async patch<T>(endpoint: string, data: any): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: "PUT",
+      method: "PATCH",
       body: JSON.stringify(data),
     });
   }
