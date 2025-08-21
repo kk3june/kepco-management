@@ -19,3 +19,15 @@ export const formatPhoneNumber = (value: string) => {
       "$1-$2-$3"
     );
 };
+
+// 아이디 포맷팅 및 검증 함수
+export const formatUserId = (value: string) => {
+  // 영문 소문자, 숫자, 언더스코어(_), 하이픈(-), 점(.)만 허용
+  return value.replace(/[^a-z0-9._-]/g, "").toLowerCase();
+};
+
+export const validateUserId = (value: string) => {
+  // 영문 소문자, 숫자, 언더스코어(_), 하이픈(-), 점(.)만 허용
+  const userIdPattern = /^[a-z0-9._-]+$/;
+  return userIdPattern.test(value);
+};

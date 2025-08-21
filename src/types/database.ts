@@ -5,8 +5,8 @@ export interface ApiResponse<T> {
 }
 
 export interface SalesmanRequest {
-  userId: string;
-  userPw: string;
+  username: string;
+  password: string;
   name: string;
   phone: string;
   email: string;
@@ -46,8 +46,8 @@ export interface Salesman {
 }
 
 export interface EngineerRequest {
-  userId: string;
-  userPw: string;
+  username: string;
+  password: string;
   name: string;
   phone: string;
   email: string;
@@ -83,7 +83,6 @@ export type ProgressStatus =
   | "REJECTED";
 
 export interface Customer {
-  id: number;
   companyName: string;
   representative: string;
   businessNumber: string;
@@ -109,6 +108,44 @@ export interface Customer {
   tenantFactory: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface AttachmentFile {
+  fileKey: string;
+  category: string;
+  originalFileName: string;
+  extension: string;
+  contentType: string;
+  size: number;
+}
+
+export interface CustomerRequest {
+  companyName: string;
+  representative: string;
+  businessNumber: string;
+  businessType: string;
+  businessItem: string;
+  businessAddress: string;
+  managerName: string;
+  companyPhone: string;
+  email: string;
+  phoneNumber: string;
+  powerPlannerId: string;
+  powerPlannerPassword: string;
+  buildingType: BuildingType;
+  isTenantFactory: boolean;
+  januaryElectricUsage: number;
+  augustElectricUsage: number;
+  salesmanId: number | null;
+  engineerId: number | null;
+  projectCost: number;
+  electricitySavingRate: number;
+  subsidy: number;
+  projectPeriod: string;
+  progressStatus: ProgressStatus;
+  isDelete: boolean;
+  newAttachmentFileList: AttachmentFile[];
+  deleteAttachmentFileList: number[];
 }
 export interface CustomerResponse {
   customerList: CustomerListItem[];

@@ -1,3 +1,4 @@
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { CustomerForm } from "@/components/CustomerForm";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -17,10 +18,12 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { API_ENDPOINTS, apiClient } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import {
   ApiResponse,
   Customer,
   CustomerListItem,
+  CustomerRequest,
   CustomerResponse,
 } from "@/types/database";
 import { Building2, Edit, Eye, Mail, Phone, Plus, Trash2 } from "lucide-react";
@@ -30,8 +33,19 @@ import { Link } from "react-router-dom";
 export function Customers() {
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [editingCustomer, setEditingCustomer] = useState<
+    (Customer & { customerId: number }) | null
+  >(null);
   const [loading, setLoading] = useState(true);
+  const [deleteDialog, setDeleteDialog] = useState<{
+    isOpen: boolean;
+    customerId: string | null;
+    customerName: string;
+  }>({
+    isOpen: false,
+    customerId: null,
+    customerName: "",
+  });
 
   useEffect(() => {
     fetchCustomers();
@@ -70,43 +84,72 @@ export function Customers() {
       console.error("Error fetching customer:", response.error);
       return;
     }
-    setEditingCustomer(response.data?.data || null);
+    setEditingCustomer(
+      response.data?.data ? { ...response.data.data, customerId } : null
+    );
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("정말로 이 수용가를 삭제하시겠습니까?")) {
-      return;
-    }
+  const handleDeleteClick = (id: string, customerName: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      customerId: id,
+      customerName,
+    });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteDialog.customerId) return;
 
     try {
       const response = await apiClient.delete(
-        API_ENDPOINTS.CUSTOMERS.DELETE(id)
+        API_ENDPOINTS.CUSTOMERS.DELETE(deleteDialog.customerId)
       );
 
       if (response.error) {
         console.error("Error deleting customer:", response.error);
+        toast.error(
+          "삭제 실패",
+          `수용가 삭제 중 오류가 발생했습니다: ${response.error}`
+        );
         return;
       }
 
+      // 성공 메시지 표시
+      toast.success("삭제 완료", "수용가가 성공적으로 삭제되었습니다.");
       fetchCustomers();
     } catch (error) {
       console.error("Error:", error);
+      toast.error(
+        "삭제 실패",
+        "수용가 삭제 중 오류가 발생했습니다. 다시 시도해주세요."
+      );
     }
   };
 
   const handleFormSubmit = async (
     data: Omit<
       Customer,
-      "id" | "created_at" | "updated_at" | "sales_rep" | "engineer"
+      "id" | "createdAt" | "updatedAt" | "salesmanId" | "engineerId"
     >
   ) => {
     try {
+      // API 요청에 필요한 형태로 데이터 변환
+      const requestData: CustomerRequest = {
+        ...data,
+        isTenantFactory: data.tenantFactory,
+        isDelete: false,
+        newAttachmentFileList: [],
+        deleteAttachmentFileList: [],
+        salesmanId: editingCustomer?.salesmanId || null,
+        engineerId: editingCustomer?.engineerId || null,
+      };
+
       if (editingCustomer) {
         // 수정
-        const response = await apiClient.put(
-          API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.id.toString()),
-          data
+        const response = await apiClient.patch(
+          API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.customerId.toString()),
+          requestData
         );
 
         if (response.error) {
@@ -117,7 +160,7 @@ export function Customers() {
         // 생성
         const response = await apiClient.post(
           API_ENDPOINTS.CUSTOMERS.CREATE,
-          data
+          requestData
         );
 
         if (response.error) {
@@ -281,7 +324,10 @@ export function Customers() {
                           variant="ghost"
                           size="sm"
                           onClick={() =>
-                            handleDelete(customer.customerId.toString())
+                            handleDeleteClick(
+                              customer.customerId.toString(),
+                              customer.companyName || "수용가"
+                            )
                           }
                           className="text-red-600 hover:text-red-700"
                         >
@@ -302,6 +348,23 @@ export function Customers() {
         onOpenChange={setIsFormOpen}
         customer={editingCustomer}
         onSubmit={handleFormSubmit}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() =>
+          setDeleteDialog({
+            isOpen: false,
+            customerId: null,
+            customerName: "",
+          })
+        }
+        onConfirm={handleDeleteConfirm}
+        title="수용가 삭제 확인"
+        description={`"${deleteDialog.customerName}" 수용가를 정말로 삭제하시겠습니까?\n\n삭제된 데이터는 복구할 수 없습니다.`}
+        confirmText="삭제"
+        cancelText="취소"
+        variant="destructive"
       />
     </div>
   );
