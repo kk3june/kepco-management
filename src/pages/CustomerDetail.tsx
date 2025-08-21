@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/Card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { API_ENDPOINTS, apiClient } from "@/lib/api";
-import { Customer } from "@/types/database";
+import { ApiResponse, Customer } from "@/types/database";
 import {
   ArrowLeft,
   Briefcase,
@@ -30,7 +30,9 @@ import { Link, useParams } from "react-router-dom";
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<
+    (Customer & { customerId: number }) | null
+  >(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFeasibilityOpen, setIsFeasibilityOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,7 @@ export function CustomerDetail() {
 
   const fetchCustomer = async (customerId: string) => {
     try {
-      const response = await apiClient.get<Customer>(
+      const response = await apiClient.get<ApiResponse<Customer>>(
         API_ENDPOINTS.CUSTOMERS.GET(customerId)
       );
 
@@ -52,7 +54,11 @@ export function CustomerDetail() {
         return;
       }
 
-      setCustomer(response.data || null);
+      setCustomer(
+        response.data?.data
+          ? { ...response.data.data, customerId: parseInt(customerId) }
+          : null
+      );
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -63,15 +69,22 @@ export function CustomerDetail() {
   const handleFormSubmit = async (
     data: Omit<
       Customer,
-      "id" | "created_at" | "updated_at" | "sales_rep" | "engineer"
+      "id" | "createdAt" | "updatedAt" | "salesmanId" | "engineerId"
     >
   ) => {
     if (!customer) return;
 
     try {
-      const response = await apiClient.put(
-        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.id.toString()),
-        data
+      // API 요청에 필요한 형태로 데이터 변환
+      const requestData = {
+        ...data,
+        salesmanId: customer.salesmanId,
+        engineerId: customer.engineerId,
+      };
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
+        requestData
       );
 
       if (response.error) {
@@ -80,7 +93,7 @@ export function CustomerDetail() {
       }
 
       setIsFormOpen(false);
-      fetchCustomer(customer.id.toString());
+      fetchCustomer(customer.customerId.toString());
     } catch (error) {
       console.error("Error:", error);
     }
@@ -453,7 +466,7 @@ export function CustomerDetail() {
         {customer.buildingType === "FACTORY" && (
           <TabsContent value="factory" className="space-y-4">
             <FactoryUsageForm
-              customerId={customer.id}
+              customerId={customer.customerId}
               buildingType={customer.buildingType}
               onChange={() => {
                 // 공장 데이터 업데이트 후 필요한 작업
@@ -465,28 +478,28 @@ export function CustomerDetail() {
         <TabsContent value="documents" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FileUpload
-              customerId={customer.id}
+              customerId={customer.customerId}
               documentType="business_license"
               title="사업자 등록증"
               description="사업자 등록증을 업로드해주세요."
             />
 
             <FileUpload
-              customerId={customer.id}
+              customerId={customer.customerId}
               documentType="electrical_diagram"
               title="변전실 도면 (단선결선도)"
               description="변전실 단선결선도를 업로드해주세요."
             />
 
             <FileUpload
-              customerId={customer.id}
+              customerId={customer.customerId}
               documentType="power_usage_data"
               title="전력사용량 데이터 (고메타)"
               description="1월 또는 8월 중 전력사용량이 큰 자료를 업로드해주세요."
             />
 
             <FileUpload
-              customerId={customer.id}
+              customerId={customer.customerId}
               documentType="other"
               title="기타 문서"
               description="기타 필요한 문서를 업로드해주세요."
@@ -505,7 +518,7 @@ export function CustomerDetail() {
       <FeasibilityStudyForm
         open={isFeasibilityOpen}
         onOpenChange={setIsFeasibilityOpen}
-        customerId={customer.id}
+        customerId={customer.customerId}
         customerName={customer.companyName}
       />
     </div>
