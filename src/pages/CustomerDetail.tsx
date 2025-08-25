@@ -1,5 +1,4 @@
 import { CustomerForm } from "@/components/CustomerForm";
-import { FactoryUsageForm } from "@/components/FactoryUsageForm";
 import { FeasibilityStudyForm } from "@/components/FeasibilityStudyForm";
 import { FileUpload } from "@/components/FileUpload";
 import { Badge } from "@/components/ui/Badge";
@@ -11,20 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { API_ENDPOINTS, apiClient } from "@/lib/api";
 import { ApiResponse, Customer } from "@/types/database";
-import {
-  ArrowLeft,
-  Briefcase,
-  Building2,
-  Edit,
-  FileText,
-  Mail,
-  MapPin,
-  Phone,
-  User,
-} from "lucide-react";
+import { ArrowLeft, Building2, Edit, FileText, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -36,6 +24,8 @@ export function CustomerDetail() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isFeasibilityOpen, setIsFeasibilityOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<Customer>>({});
 
   useEffect(() => {
     if (id) {
@@ -63,6 +53,58 @@ export function CustomerDetail() {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startEditing = () => {
+    if (customer) {
+      setEditData(customer);
+      setIsEditing(true);
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditData({});
+    setIsEditing(false);
+  };
+
+  const handleInputChange = (
+    field: keyof Customer,
+    value: string | number | boolean
+  ) => {
+    setEditData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = async () => {
+    if (!customer || !editData.companyName) return;
+
+    try {
+      // API 요청에 필요한 데이터 준비
+      const requestData = {
+        ...editData,
+        salesmanId: customer.salesmanId,
+        engineerId: customer.engineerId,
+      };
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
+        requestData
+      );
+
+      if (response.error) {
+        console.error("Error updating customer:", response.error);
+        alert("수정 중 오류가 발생했습니다.");
+        return;
+      }
+
+      // 성공 시 고객 정보 새로고침
+      await fetchCustomer(customer.customerId.toString());
+      setIsEditing(false);
+      setEditData({});
+      alert("수정이 완료되었습니다.");
+    } catch (error) {
+      console.error("Error:", error);
+      alert("수정 중 오류가 발생했습니다.");
     }
   };
 
@@ -135,11 +177,6 @@ export function CustomerDetail() {
     return typeMap[type as keyof typeof typeMap] || type;
   };
 
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return "-";
-    return new Intl.NumberFormat("ko-KR").format(amount) + "원";
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">로딩중...</div>
@@ -200,282 +237,351 @@ export function CustomerDetail() {
                 대표자: {customer.representative}
               </CardDescription>
             </div>
-            <Badge className={getStatusColor(customer.progressStatus)}>
-              {getStatusText(customer.progressStatus)}
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Badge className={getStatusColor(customer.progressStatus)}>
+                {getStatusText(customer.progressStatus)}
+              </Badge>
+              {isEditing ? (
+                <>
+                  <Button onClick={handleSave} size="sm">
+                    저장
+                  </Button>
+                  <Button onClick={cancelEditing} variant="outline" size="sm">
+                    취소
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={startEditing} size="sm">
+                  <Edit className="mr-2 h-4 w-4" />
+                  수정
+                </Button>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* 기본 정보 섹션 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div>
               <p className="text-sm font-medium text-gray-500">건물형태</p>
-              <p className="text-sm">
-                {getBuildingTypeText(customer.buildingType)}
-              </p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-500">임대공장 여부</p>
-              <p className="text-sm">
-                {customer.tenantFactory ? "임대공장" : "자체공장"}
-              </p>
+              {isEditing ? (
+                <select
+                  value={editData.buildingType || customer.buildingType}
+                  onChange={(e) =>
+                    handleInputChange("buildingType", e.target.value)
+                  }
+                  className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                  <option value="FACTORY">공장</option>
+                  <option value="KNOWLEDGE_INDUSTRY_CENTER">
+                    지식산업센터
+                  </option>
+                  <option value="BUILDING">건물</option>
+                  <option value="MIXED_USE_COMPLEX">복합단지</option>
+                  <option value="APARTMENT_COMPLEX">아파트단지</option>
+                  <option value="SCHOOL">학교</option>
+                  <option value="HOTEL">호텔</option>
+                  <option value="OTHER">기타</option>
+                </select>
+              ) : (
+                <p className="text-sm">
+                  {getBuildingTypeText(customer.buildingType)}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">
                 사업자등록번호
               </p>
-              <p className="text-sm">{customer.businessNumber}</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editData.businessNumber || ""}
+                  onChange={(e) =>
+                    handleInputChange("businessNumber", e.target.value)
+                  }
+                  className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+              ) : (
+                <p className="text-sm">{customer.businessNumber}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">담당자</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editData.managerName || ""}
+                  onChange={(e) =>
+                    handleInputChange("managerName", e.target.value)
+                  }
+                  className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+              ) : (
+                <p className="text-sm">{customer.managerName}</p>
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">연락처</p>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editData.companyPhone || ""}
+                  onChange={(e) =>
+                    handleInputChange("companyPhone", e.target.value)
+                  }
+                  className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                />
+              ) : (
+                <p className="text-sm">{customer.companyPhone}</p>
+              )}
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Tabs defaultValue="info" className="w-full">
-        <TabsList>
-          <TabsTrigger value="info">기본 정보</TabsTrigger>
-          <TabsTrigger value="contact">연락처</TabsTrigger>
-          <TabsTrigger value="project">사업 정보</TabsTrigger>
-          <TabsTrigger value="team">담당자</TabsTrigger>
-          {customer.buildingType === "FACTORY" && (
-            <TabsTrigger value="factory">공장 정보</TabsTrigger>
-          )}
-          <TabsTrigger value="documents">첨부 문서</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="info" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>회사 정보</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* 추가 정보 섹션 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">업무 정보</h4>
+              <div className="space-y-3">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">기본 정보</h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        업체명
-                      </p>
-                      <p className="text-sm">{customer.companyName}</p>
+                  <p className="text-sm font-medium text-gray-500">업종/업태</p>
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="업종"
+                        value={editData.businessType || ""}
+                        onChange={(e) =>
+                          handleInputChange("businessType", e.target.value)
+                        }
+                        className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                      />
+                      <input
+                        type="text"
+                        placeholder="업태"
+                        value={editData.businessItem || ""}
+                        onChange={(e) =>
+                          handleInputChange("businessItem", e.target.value)
+                        }
+                        className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                      />
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        대표자
-                      </p>
-                      <p className="text-sm">{customer.representative}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        사업자등록번호
-                      </p>
-                      <p className="text-sm">{customer.businessNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        업종/업태
-                      </p>
-                      <p className="text-sm">
-                        {customer.businessType} / {customer.businessItem}
-                      </p>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm">
+                      {customer.businessType} / {customer.businessItem}
+                    </p>
+                  )}
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-2">주소</h4>
-                  <div className="flex items-start">
-                    <MapPin className="mr-2 h-4 w-4 mt-0.5 text-gray-400" />
-                    <p className="text-sm">{customer.businessAddress}</p>
-                  </div>
+                  <p className="text-sm font-medium text-gray-500">사업기간</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.projectPeriod || ""}
+                      onChange={(e) =>
+                        handleInputChange("projectPeriod", e.target.value)
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <p className="text-sm">
+                      {customer.projectPeriod || "미정"}
+                    </p>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="contact" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>연락처 정보</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">연락처 정보</h4>
+              <div className="space-y-3">
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    담당자 연락처
-                  </h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        담당자명
-                      </p>
-                      <p className="text-sm">{customer.managerName}</p>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="mr-2 h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">
-                          회사전화
-                        </p>
-                        <p className="text-sm">{customer.companyPhone}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Phone className="mr-2 h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">
-                          휴대전화
-                        </p>
-                        <p className="text-sm">{customer.phoneNumber}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center">
-                      <Mail className="mr-2 h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-500">
-                          이메일
-                        </p>
-                        <p className="text-sm">{customer.email}</p>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-sm font-medium text-gray-500">휴대전화</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.phoneNumber || ""}
+                      onChange={(e) =>
+                        handleInputChange("phoneNumber", e.target.value)
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <p className="text-sm">{customer.phoneNumber}</p>
+                  )}
                 </div>
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-3">
-                    한전파워플래너
-                  </h4>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        아이디
-                      </p>
-                      <p className="text-sm">{customer.powerPlannerId}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500">
-                        패스워드
-                      </p>
-                      <p className="text-sm">••••••••</p>
-                    </div>
-                  </div>
+                  <p className="text-sm font-medium text-gray-500">이메일</p>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={editData.email || ""}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <p className="text-sm">{customer.email}</p>
+                  )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </div>
 
-        <TabsContent value="project" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>사업 정보</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* 주소 및 한전파워플래너 섹션 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">주소</h4>
+              <div className="flex items-start">
+                <MapPin className="mr-2 h-4 w-4 mt-0.5 text-gray-400" />
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.businessAddress || ""}
+                    onChange={(e) =>
+                      handleInputChange("businessAddress", e.target.value)
+                    }
+                    className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm">{customer.businessAddress}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">한전파워플래너</h4>
+              <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">사업비용</p>
+                  <p className="text-sm font-medium text-gray-500">아이디</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.powerPlannerId || ""}
+                      onChange={(e) =>
+                        handleInputChange("powerPlannerId", e.target.value)
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <p className="text-sm">{customer.powerPlannerId}</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">패스워드</p>
+                  {isEditing ? (
+                    <input
+                      type="password"
+                      value={editData.powerPlannerPassword || ""}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "powerPlannerPassword",
+                          e.target.value
+                        )
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <p className="text-sm">••••••••</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 사업 정보 요약 섹션 */}
+          <div className="pt-4 border-t border-gray-200">
+            <h4 className="font-medium text-gray-900 mb-3">사업 정보</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">사업비용</p>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    value={editData.projectCost || 0}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "projectCost",
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                  />
+                ) : (
                   <p className="text-lg font-semibold">
-                    {formatCurrency(customer.projectCost)}
+                    {customer.projectCost
+                      ? new Intl.NumberFormat("ko-KR").format(
+                          customer.projectCost
+                        ) + "원"
+                      : "-"}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">
-                    전기요금 절감율
-                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">
+                  전기요금 절감율
+                </p>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={editData.electricitySavingRate || 0}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "electricitySavingRate",
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                  />
+                ) : (
                   <p className="text-lg font-semibold">
                     {customer.electricitySavingRate
                       ? `${customer.electricitySavingRate}%`
                       : "-"}
                   </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">보조금</p>
-                  <p className="text-lg font-semibold">
-                    {formatCurrency(customer.subsidy)}
-                  </p>
-                </div>
+                )}
               </div>
-
-              {customer.projectPeriod && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-500">사업기간</p>
-                  <p className="text-sm">{customer.projectPeriod}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="team" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* 영업자 정보 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <User className="mr-2 h-5 w-5" />
-                  담당 영업자
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customer.salesmanId ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="font-medium">
-                        영업자 ID: {customer.salesmanId}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        담당 영업자 정보는 별도로 조회해야 합니다.
-                      </p>
-                    </div>
-                  </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500">보조금</p>
+                {isEditing ? (
+                  <input
+                    type="number"
+                    value={editData.subsidy || 0}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "subsidy",
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                  />
                 ) : (
-                  <p className="text-gray-500">
-                    담당 영업자가 지정되지 않았습니다.
+                  <p className="text-lg font-semibold">
+                    {customer.subsidy
+                      ? new Intl.NumberFormat("ko-KR").format(
+                          customer.subsidy
+                        ) + "원"
+                      : "-"}
                   </p>
                 )}
-              </CardContent>
-            </Card>
-
-            {/* 기술사 정보 */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Briefcase className="mr-2 h-5 w-5" />
-                  담당 기술사
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {customer.engineerId ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="font-medium">
-                        기술사 ID: {customer.engineerId}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        담당 기술사 정보는 별도로 조회해야 합니다.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-gray-500">
-                    담당 기술사가 지정되지 않았습니다.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
-        </TabsContent>
+        </CardContent>
+      </Card>
 
-        {customer.buildingType === "FACTORY" && (
-          <TabsContent value="factory" className="space-y-4">
-            <FactoryUsageForm
-              customerId={customer.customerId}
-              buildingType={customer.buildingType}
-              onChange={() => {
-                // 공장 데이터 업데이트 후 필요한 작업
-              }}
-            />
-          </TabsContent>
-        )}
-
-        <TabsContent value="documents" className="space-y-6">
+      {/* 첨부 문서 섹션 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileText className="mr-2 h-5 w-5" />
+            첨부 문서
+          </CardTitle>
+          <CardDescription>
+            수용가 관련 문서를 업로드하고 관리할 수 있습니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FileUpload
               customerId={customer.customerId}
@@ -505,8 +611,8 @@ export function CustomerDetail() {
               description="기타 필요한 문서를 업로드해주세요."
             />
           </div>
-        </TabsContent>
-      </Tabs>
+        </CardContent>
+      </Card>
 
       <CustomerForm
         open={isFormOpen}
