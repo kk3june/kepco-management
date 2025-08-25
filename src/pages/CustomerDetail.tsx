@@ -511,7 +511,6 @@ export function CustomerDetail() {
       <CustomerForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        customer={customer}
         onSubmit={handleFormSubmit}
       />
 
