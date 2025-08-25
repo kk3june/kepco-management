@@ -17,26 +17,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/Table";
-import { API_ENDPOINTS, apiClient } from "@/lib/api";
+import { API_ENDPOINTS, apiClient, checkCompanyName } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import {
+  AddCustomerRequest,
   ApiResponse,
   BuildingType,
-  Customer,
   CustomerListItem,
-  CustomerRequest,
   CustomerResponse,
 } from "@/types/database";
-import { Building2, Edit, Eye, Mail, Phone, Plus, Trash2 } from "lucide-react";
+import { Building2, Eye, Mail, Phone, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 export function Customers() {
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState<
-    (Customer & { customerId: number }) | null
-  >(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
@@ -72,22 +68,6 @@ export function Customers() {
   };
 
   const handleCreate = () => {
-    setEditingCustomer(null);
-    setIsFormOpen(true);
-  };
-
-  const handleEdit = async (customerId: number) => {
-    const response = await apiClient.get<ApiResponse<Customer>>(
-      API_ENDPOINTS.CUSTOMERS.GET(customerId.toString())
-    );
-
-    if (response.error) {
-      console.error("Error fetching customer:", response.error);
-      return;
-    }
-    setEditingCustomer(
-      response.data?.data ? { ...response.data.data, customerId } : null
-    );
     setIsFormOpen(true);
   };
 
@@ -128,104 +108,45 @@ export function Customers() {
     }
   };
 
-  const handleFormSubmit = async (data: Customer, isEdit: boolean) => {
+  const handleFormSubmit = async (data: AddCustomerRequest) => {
     try {
-      if (isEdit && editingCustomer) {
-        // 수정 API 요청 구조 (updateCustomer)
-        const updateRequestData: CustomerRequest = {
-          companyName: data.companyName,
-          representative: data.representative,
-          businessNumber: data.businessNumber,
-          businessType: data.businessType,
-          businessItem: data.businessItem,
-          businessAddress: data.businessAddress,
-          managerName: data.managerName,
-          companyPhone: data.companyPhone,
-          email: data.email,
-          phoneNumber: data.phoneNumber,
-          powerPlannerId: data.powerPlannerId,
-          powerPlannerPassword: data.powerPlannerPassword,
-          buildingType: data.buildingType,
-          isTenantFactory: data.tenantFactory,
-          januaryElectricUsage: data.januaryElectricUsage,
-          augustElectricUsage: data.augustElectricUsage,
-          salesmanId: editingCustomer.salesmanId || null,
-          engineerId: editingCustomer.engineerId || null,
-          projectCost: data.projectCost,
-          electricitySavingRate: data.electricitySavingRate,
-          subsidy: data.subsidy,
-          projectPeriod: data.projectPeriod,
-          progressStatus: data.progressStatus,
-          isDelete: false,
-          newAttachmentFileList: [],
-          deleteAttachmentFileList: [],
-        };
+      // 수용가명 중복 체크
+      const duplicateCheck = await checkCompanyName(data.companyName);
 
-        const response = await apiClient.patch(
-          API_ENDPOINTS.CUSTOMERS.UPDATE(editingCustomer.customerId.toString()),
-          updateRequestData
+      if (!duplicateCheck.data.possible) {
+        // 중복된 경우 alert 창 표시
+        alert(
+          `업체명 "${
+            data.companyName
+          }"이(가) 이미 존재합니다.\n\n담당 영업사원: ${
+            duplicateCheck.data.salesmanName || "정보 없음"
+          }\n연락처: ${
+            duplicateCheck.data.salesmanPhoneNumber || "정보 없음"
+          }\n이메일: ${duplicateCheck.data.salesmanEmail || "정보 없음"}`
         );
-
-        if (response.error) {
-          console.error("Error updating customer:", response.error);
-          toast.error("수정 실패", "수용가 수정 중 오류가 발생했습니다.");
-          return;
-        }
-
-        toast.success("수정 완료", "수용가가 성공적으로 수정되었습니다.");
-      } else {
-        // 생성 API 요청 구조 (generateCustomer)
-        const createRequestData: CustomerRequest = {
-          companyName: data.companyName,
-          representative: data.representative,
-          businessNumber: data.businessNumber,
-          businessType: data.businessType,
-          businessItem: data.businessItem,
-          businessAddress: data.businessAddress,
-          managerName: data.managerName,
-          companyPhone: data.companyPhone,
-          email: data.email,
-          phoneNumber: data.phoneNumber,
-          powerPlannerId: data.powerPlannerId,
-          powerPlannerPassword: data.powerPlannerPassword,
-          buildingType: data.buildingType,
-          isTenantFactory: data.tenantFactory,
-          januaryElectricUsage: data.januaryElectricUsage,
-          augustElectricUsage: data.augustElectricUsage,
-          salesmanId: data.salesmanId,
-          engineerId: data.engineerId,
-          projectCost: data.projectCost,
-          electricitySavingRate: data.electricitySavingRate,
-          subsidy: data.subsidy,
-          projectPeriod: data.projectPeriod,
-          progressStatus: data.progressStatus,
-          isDelete: false,
-          newAttachmentFileList: [],
-          deleteAttachmentFileList: [],
-        };
-
-        const response = await apiClient.post(
-          API_ENDPOINTS.CUSTOMERS.CREATE,
-          createRequestData
-        );
-
-        if (response.error) {
-          console.error("Error creating customer:", response.error);
-          toast.error("생성 실패", "수용가 생성 중 오류가 발생했습니다.");
-          return;
-        }
-
-        toast.success("생성 완료", "수용가가 성공적으로 생성되었습니다.");
+        return;
       }
 
+      // 중복되지 않은 경우 수용가 생성 API 호출
+      const response = await apiClient.post(
+        API_ENDPOINTS.CUSTOMERS.CREATE,
+        data
+      );
+
+      if (response.error) {
+        console.error("Error creating customer:", response.error);
+        toast.error("생성 실패", "수용가 생성 중 오류가 발생했습니다.");
+        return;
+      }
+
+      toast.success("생성 완료", "수용가가 성공적으로 생성되었습니다.");
       setIsFormOpen(false);
-      setEditingCustomer(null);
       fetchCustomers();
     } catch (error) {
       console.error("Error:", error);
       toast.error(
-        isEdit ? "수정 실패" : "생성 실패",
-        "수용가 처리 중 오류가 발생했습니다. 다시 시도해주세요."
+        "생성 실패",
+        "수용가 생성 중 오류가 발생했습니다. 다시 시도해주세요."
       );
     }
   };
@@ -373,13 +294,6 @@ export function Customers() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(customer.customerId)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() =>
                             handleDeleteClick(
                               customer.customerId.toString(),
@@ -403,7 +317,6 @@ export function Customers() {
       <CustomerForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        customer={editingCustomer}
         onSubmit={handleFormSubmit}
       />
 

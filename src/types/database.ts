@@ -89,7 +89,7 @@ export interface Customer {
   businessType: string;
   businessItem: string;
   businessAddress: string;
-  managerName: string;
+  managerName?: string;
   companyPhone: string;
   email: string;
   phoneNumber: string;
@@ -108,6 +108,10 @@ export interface Customer {
   tenantFactory: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface AddCustomerRequest extends Customer {
+  attachmentFileList: AttachmentFile[];
 }
 
 export interface AttachmentFile {
@@ -209,6 +213,17 @@ export interface FeasibilityStudy {
 
   created_at: string;
   updated_at: string;
+}
+
+export interface CompanyNameCheckResponse {
+  status: number;
+  message: string;
+  data: {
+    possible: boolean;
+    salesmanName: string | null;
+    salesmanPhoneNumber: string | null;
+    salesmanEmail: string | null;
+  };
 }
 
 // Supabase Database 타입
