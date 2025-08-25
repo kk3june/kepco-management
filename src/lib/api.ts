@@ -1,3 +1,5 @@
+import { CompanyNameCheckResponse } from "@/types/database";
+
 const API_BASE_URL = import.meta.env.DEV
   ? "" // 개발 환경에서는 프록시 사용
   : "http://ec2-3-36-179-72.ap-northeast-2.compute.amazonaws.com:8080";
@@ -208,6 +210,35 @@ export const API_ENDPOINTS = {
     DOWNLOAD: (id: string) => `/api/files/${id}/download`,
   },
 } as const;
+
+export async function checkCompanyName(
+  companyName: string
+): Promise<CompanyNameCheckResponse> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/customer/check/company-name?companyName=${companyName}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("업체명 중복 검사 중 오류 발생:", error);
+    throw error;
+  }
+}
 
 // 에러 핸들링 헬퍼 함수
 export const handleApiError = (error: any, operation: string) => {
