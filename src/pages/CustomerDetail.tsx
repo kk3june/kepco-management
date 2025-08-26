@@ -9,7 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { API_ENDPOINTS, apiClient, checkCompanyName } from "@/lib/api";
-import { ApiResponse, Customer } from "@/types/database";
+import {
+  ApiResponse,
+  Customer,
+  Engineer,
+  EngineerResponse,
+  Salesman,
+  SalesmanResponse,
+} from "@/types/database";
 import { ArrowLeft, Building2, FileText, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -23,11 +30,15 @@ export function CustomerDetail() {
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Customer>>({});
+  const [salesmans, setSalesmans] = useState<Salesman[]>([]);
+  const [engineers, setEngineers] = useState<Engineer[]>([]);
 
   useEffect(() => {
     if (id) {
       fetchCustomer(id);
     }
+    fetchSalesmans();
+    fetchEngineers();
   }, [id]);
 
   const fetchCustomer = async (customerId: string) => {
@@ -50,6 +61,32 @@ export function CustomerDetail() {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSalesmans = async () => {
+    try {
+      const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
+        API_ENDPOINTS.SALES_REPS.LIST
+      );
+      if (response.data) {
+        setSalesmans(response.data.data?.adminSalesmanList || []);
+      }
+    } catch (error) {
+      console.error("Error fetching salesmans:", error);
+    }
+  };
+
+  const fetchEngineers = async () => {
+    try {
+      const response = await apiClient.get<ApiResponse<EngineerResponse>>(
+        API_ENDPOINTS.ENGINEERS.LIST
+      );
+      if (response.data) {
+        setEngineers(response.data.data?.adminEngineerList || []);
+      }
+    } catch (error) {
+      console.error("Error fetching engineers:", error);
     }
   };
 
@@ -613,6 +650,152 @@ export function CustomerDetail() {
                       : "-"}
                   </p>
                 )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4 pt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                담당 영업자
+              </label>
+              <div className="flex space-x-2">
+                <select
+                  value={customer?.salesmanId?.toString() || "0"}
+                  onChange={(e) => {
+                    const newSalesmanId =
+                      e.target.value === "0" ? null : parseInt(e.target.value);
+                    if (customer) {
+                      setCustomer({ ...customer, salesmanId: newSalesmanId });
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
+                >
+                  <option value="0" className="py-1">
+                    담당자 선택
+                  </option>
+                  {salesmans.map((rep) => (
+                    <option
+                      key={rep.id}
+                      value={rep.id.toString()}
+                      className="py-1"
+                    >
+                      {rep.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={async () => {
+                    if (!customer) return;
+                    try {
+                      const requestData = {
+                        ...customer,
+                        isDelete: false,
+                        newAttachmentFileList: [],
+                        deleteAttachmentFileList: [],
+                      };
+
+                      const response = await apiClient.patch(
+                        API_ENDPOINTS.CUSTOMERS.UPDATE(
+                          customer.customerId.toString()
+                        ),
+                        requestData
+                      );
+
+                      if (response.error) {
+                        console.error(
+                          "Error updating salesman:",
+                          response.error
+                        );
+                        alert("영업사원 변경 중 오류가 발생했습니다.");
+                        return;
+                      }
+
+                      alert("영업사원이 변경되었습니다.");
+                    } catch (error) {
+                      console.error("Error:", error);
+                      alert("영업사원 변경 중 오류가 발생했습니다.");
+                    }
+                  }}
+                  size="sm"
+                  className="h-10 px-3"
+                >
+                  변경
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                담당 기술사
+              </label>
+              <div className="flex space-x-2">
+                <select
+                  value={customer?.engineerId?.toString() || "0"}
+                  onChange={(e) => {
+                    const newEngineerId =
+                      e.target.value === "0" ? null : parseInt(e.target.value);
+                    if (customer) {
+                      setCustomer({ ...customer, engineerId: newEngineerId });
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
+                >
+                  <option value="0" className="py-1">
+                    기술사 선택
+                  </option>
+                  {engineers.map((engineer) => (
+                    <option
+                      key={engineer.id}
+                      value={engineer.id.toString()}
+                      className="py-1"
+                    >
+                      {engineer.name}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  onClick={async () => {
+                    if (!customer) return;
+                    try {
+                      const requestData = {
+                        ...customer,
+                        isDelete: false,
+                        newAttachmentFileList: [],
+                        deleteAttachmentFileList: [],
+                      };
+
+                      const response = await apiClient.patch(
+                        API_ENDPOINTS.CUSTOMERS.UPDATE(
+                          customer.customerId.toString()
+                        ),
+                        requestData
+                      );
+
+                      if (response.error) {
+                        console.error(
+                          "Error updating engineer:",
+                          response.error
+                        );
+                        alert("기술사 변경 중 오류가 발생했습니다.");
+                        return;
+                      }
+
+                      alert("기술사가 변경되었습니다.");
+                    } catch (error) {
+                      console.error("Error:", error);
+                      alert("기술사 변경 중 오류가 발생했습니다.");
+                    }
+                  }}
+                  size="sm"
+                  className="h-10 px-3"
+                >
+                  변경
+                </Button>
               </div>
             </div>
           </div>
