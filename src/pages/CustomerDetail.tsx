@@ -91,11 +91,38 @@ export function CustomerDetail() {
         }
       }
 
-      // API 요청에 필요한 데이터 준비
+      // API 요청에 필요한 데이터를 API 스펙에 맞게 준비
       const requestData = {
-        ...editData,
+        companyName: editData.companyName || customer.companyName,
+        representative: editData.representative || customer.representative,
+        businessNumber: editData.businessNumber || customer.businessNumber,
+        businessType: editData.businessType || customer.businessType,
+        businessItem: editData.businessItem || customer.businessItem,
+        businessAddress: editData.businessAddress || customer.businessAddress,
+        managerName: editData.managerName || customer.managerName,
+        companyPhone: editData.companyPhone || customer.companyPhone,
+        email: editData.email || customer.email,
+        phoneNumber: editData.phoneNumber || customer.phoneNumber,
+        powerPlannerId: editData.powerPlannerId || customer.powerPlannerId,
+        powerPlannerPassword:
+          editData.powerPlannerPassword || customer.powerPlannerPassword,
+        buildingType: editData.buildingType || customer.buildingType,
+        isTenantFactory: editData.tenantFactory ?? customer.tenantFactory,
+        januaryElectricUsage:
+          editData.januaryElectricUsage ?? customer.januaryElectricUsage,
+        augustElectricUsage:
+          editData.augustElectricUsage ?? customer.augustElectricUsage,
         salesmanId: customer.salesmanId,
         engineerId: customer.engineerId,
+        projectCost: editData.projectCost ?? customer.projectCost,
+        electricitySavingRate:
+          editData.electricitySavingRate ?? customer.electricitySavingRate,
+        subsidy: editData.subsidy ?? customer.subsidy,
+        projectPeriod: editData.projectPeriod || customer.projectPeriod,
+        progressStatus: editData.progressStatus || customer.progressStatus,
+        isDelete: false, // 기본값으로 false 설정
+        newAttachmentFileList: [], // 현재는 빈 배열로 전송
+        deleteAttachmentFileList: [], // 현재는 빈 배열로 전송
       };
 
       const response = await apiClient.patch(
@@ -129,11 +156,34 @@ export function CustomerDetail() {
     if (!customer) return;
 
     try {
-      // API 요청에 필요한 형태로 데이터 변환
+      // API 요청에 필요한 형태로 데이터 변환 (API 스펙에 맞게)
       const requestData = {
-        ...data,
+        companyName: data.companyName,
+        representative: data.representative,
+        businessNumber: data.businessNumber,
+        businessType: data.businessType,
+        businessItem: data.businessItem,
+        businessAddress: data.businessAddress,
+        managerName: data.managerName,
+        companyPhone: data.companyPhone,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        powerPlannerId: data.powerPlannerId,
+        powerPlannerPassword: data.powerPlannerPassword,
+        buildingType: data.buildingType,
+        isTenantFactory: data.tenantFactory,
+        januaryElectricUsage: data.januaryElectricUsage,
+        augustElectricUsage: data.augustElectricUsage,
         salesmanId: customer.salesmanId,
         engineerId: customer.engineerId,
+        projectCost: data.projectCost,
+        electricitySavingRate: data.electricitySavingRate,
+        subsidy: data.subsidy,
+        projectPeriod: data.projectPeriod,
+        progressStatus: data.progressStatus,
+        isDelete: false,
+        newAttachmentFileList: [],
+        deleteAttachmentFileList: [],
       };
 
       const response = await apiClient.patch(
