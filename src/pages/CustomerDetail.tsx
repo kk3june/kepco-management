@@ -1,7 +1,5 @@
 import { CustomerForm } from "@/components/CustomerForm";
-import { FeasibilityStudyForm } from "@/components/FeasibilityStudyForm";
 import { FileUpload } from "@/components/FileUpload";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   Card,
@@ -10,9 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { API_ENDPOINTS, apiClient } from "@/lib/api";
+import { API_ENDPOINTS, apiClient, checkCompanyName } from "@/lib/api";
 import { ApiResponse, Customer } from "@/types/database";
-import { ArrowLeft, Building2, Edit, FileText, MapPin } from "lucide-react";
+import { ArrowLeft, Building2, FileText, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -22,7 +20,6 @@ export function CustomerDetail() {
     (Customer & { customerId: number }) | null
   >(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isFeasibilityOpen, setIsFeasibilityOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Customer>>({});
@@ -79,6 +76,21 @@ export function CustomerDetail() {
     if (!customer || !editData.companyName) return;
 
     try {
+      // 업체명이 변경된 경우 중복 검사
+      if (editData.companyName !== customer.companyName) {
+        try {
+          const checkResponse = await checkCompanyName(editData.companyName);
+          if (!checkResponse.data.possible) {
+            alert("업체명이 중복되어 수정이 불가능합니다.");
+            return;
+          }
+        } catch (error) {
+          console.error("업체명 중복 검사 중 오류:", error);
+          alert("업체명 중복 검사 중 오류가 발생했습니다.");
+          return;
+        }
+      }
+
       // API 요청에 필요한 데이터 준비
       const requestData = {
         ...editData,
@@ -141,28 +153,6 @@ export function CustomerDetail() {
     }
   };
 
-  const getStatusText = (status: string) => {
-    const statusMap = {
-      REQUESTED: "의뢰",
-      IN_PROGRESS: "진행중",
-      COMPLETE: "완료",
-      REJECTED: "반려",
-    };
-    return statusMap[status as keyof typeof statusMap] || status;
-  };
-
-  const getStatusColor = (status: string) => {
-    const colorMap = {
-      REQUESTED: "bg-gray-100 text-gray-800",
-      IN_PROGRESS: "bg-blue-100 text-blue-800",
-      COMPLETE: "bg-green-100 text-green-800",
-      REJECTED: "bg-red-100 text-red-800",
-    };
-    return (
-      colorMap[status as keyof typeof colorMap] || "bg-gray-100 text-gray-800"
-    );
-  };
-
   const getBuildingTypeText = (type: string) => {
     const typeMap = {
       FACTORY: "공장",
@@ -212,16 +202,6 @@ export function CustomerDetail() {
             <p className="text-gray-600">수용가 상세 정보</p>
           </div>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => setIsFeasibilityOpen(true)}>
-            <FileText className="mr-2 h-4 w-4" />
-            타당성 검토
-          </Button>
-          <Button onClick={() => setIsFormOpen(true)}>
-            <Edit className="mr-2 h-4 w-4" />
-            수정
-          </Button>
-        </div>
       </div>
 
       {/* Status Card */}
@@ -231,16 +211,36 @@ export function CustomerDetail() {
             <div>
               <CardTitle className="flex items-center">
                 <Building2 className="mr-2 h-5 w-5" />
-                {customer.companyName}
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.companyName || customer.companyName}
+                    onChange={(e) =>
+                      handleInputChange("companyName", e.target.value)
+                    }
+                    className="bg-white border border-gray-300 rounded px-2 py-1 text-sm font-bold text-gray-900"
+                  />
+                ) : (
+                  customer.companyName
+                )}
               </CardTitle>
               <CardDescription>
-                대표자: {customer.representative}
+                대표자:{" "}
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editData.representative || customer.representative}
+                    onChange={(e) =>
+                      handleInputChange("representative", e.target.value)
+                    }
+                    className="bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                  />
+                ) : (
+                  customer.representative
+                )}
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge className={getStatusColor(customer.progressStatus)}>
-                {getStatusText(customer.progressStatus)}
-              </Badge>
               {isEditing ? (
                 <>
                   <Button onClick={handleSave} size="sm">
@@ -252,7 +252,6 @@ export function CustomerDetail() {
                 </>
               ) : (
                 <Button onClick={startEditing} size="sm">
-                  <Edit className="mr-2 h-4 w-4" />
                   수정
                 </Button>
               )}
@@ -618,13 +617,6 @@ export function CustomerDetail() {
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
         onSubmit={handleFormSubmit}
-      />
-
-      <FeasibilityStudyForm
-        open={isFeasibilityOpen}
-        onOpenChange={setIsFeasibilityOpen}
-        customerId={customer.customerId}
-        customerName={customer.companyName}
       />
     </div>
   );
