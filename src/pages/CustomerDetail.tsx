@@ -8,13 +8,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
-import { API_ENDPOINTS, apiClient, checkCompanyName } from "@/lib/api";
+import {
+  API_ENDPOINTS,
+  apiClient,
+  checkCompanyName,
+  getUploadUrls,
+  uploadToS3,
+} from "@/lib/api";
 import {
   ApiResponse,
   Customer,
   CustomerFile,
   Engineer,
   EngineerResponse,
+  FileUploadRequest,
   Salesman,
   SalesmanResponse,
 } from "@/types/database";
@@ -256,26 +263,68 @@ export function CustomerDetail() {
   };
 
   // 파일 업로드 핸들러
-  const handleFileUpload = async (file: File, documentType: string) => {
+  const handleFileUpload = async (
+    file: File,
+    documentType:
+      | "BUSINESS_LICENSE"
+      | "ELECTRICAL_DIAGRAM"
+      | "GOMETA_EXCEL"
+      | "OTHER"
+  ) => {
     if (!customer) return;
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("customerId", customer.customerId.toString());
-      formData.append("documentType", documentType);
+      // GOMETA_EXCEL을 OTHER로 매핑 (API 호환성을 위해)
+      const apiCategory =
+        documentType === "GOMETA_EXCEL" ? "OTHER" : documentType;
 
-      const response = await apiClient.uploadFile(
-        API_ENDPOINTS.FILES.UPLOAD,
-        file,
+      // 1. 업로드 URL 요청
+      const uploadUrlResponse = await getUploadUrls([
         {
-          customerId: customer.customerId,
-          documentType: documentType,
-        }
+          category: apiCategory,
+          extension: file.name.split(".").pop() || "",
+          contentType: file.type,
+        },
+      ]);
+
+      if (!uploadUrlResponse.success || !uploadUrlResponse.uploadUrls) {
+        alert("업로드 URL을 가져오는데 실패했습니다.");
+        return;
+      }
+
+      const uploadUrlData = uploadUrlResponse.uploadUrls[0];
+
+      // 2. S3에 파일 업로드
+      const s3UploadResponse = await uploadToS3(file, uploadUrlData.uploadUrl);
+      if (!s3UploadResponse.success) {
+        alert("파일 업로드에 실패했습니다.");
+        return;
+      }
+
+      // 3. Customer update API를 통해 파일 정보 추가
+      const newAttachmentFile: FileUploadRequest = {
+        fileKey: uploadUrlData.fileKey,
+        category: documentType, // 원본 카테고리 유지
+        originalFileName: file.name,
+        extension: file.name.split(".").pop() || "",
+        contentType: file.type,
+        size: file.size,
+      };
+
+      const requestData = {
+        ...customer,
+        isDelete: false,
+        newAttachmentFileList: [newAttachmentFile],
+        deleteAttachmentFileList: [],
+      };
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
+        requestData
       );
 
       if (response.error) {
-        console.error("파일 업로드 실패:", response.error);
+        console.error("고객 정보 업데이트 실패:", response.error);
         alert("파일 업로드에 실패했습니다.");
         return;
       }
@@ -294,12 +343,21 @@ export function CustomerDetail() {
     if (!customer) return;
 
     try {
-      const response = await apiClient.delete(
-        API_ENDPOINTS.FILES.DELETE(fileId.toString())
+      // Customer update API를 통해 파일 삭제 정보 추가
+      const requestData = {
+        ...customer,
+        isDelete: false,
+        newAttachmentFileList: [],
+        deleteAttachmentFileList: [fileId],
+      };
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
+        requestData
       );
 
       if (response.error) {
-        console.error("파일 삭제 실패:", response.error);
+        console.error("고객 정보 업데이트 실패:", response.error);
         alert("파일 삭제에 실패했습니다.");
         return;
       }

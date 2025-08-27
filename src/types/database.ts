@@ -288,6 +288,16 @@ export interface CustomerFile {
   fileUrl: string;
 }
 
+// 파일 업로드 요청을 위한 타입
+export interface FileUploadRequest {
+  fileKey: string;
+  category: string;
+  originalFileName: string;
+  extension: string;
+  contentType: string;
+  size: number;
+}
+
 export interface FileViewUrlResponse {
   fileViewUrl: string;
   fileName: string;
