@@ -12,6 +12,7 @@ import { API_ENDPOINTS, apiClient, checkCompanyName } from "@/lib/api";
 import {
   ApiResponse,
   Customer,
+  CustomerFile,
   Engineer,
   EngineerResponse,
   Salesman,
@@ -252,6 +253,72 @@ export function CustomerDetail() {
       OTHER: "기타",
     };
     return typeMap[type as keyof typeof typeMap] || type;
+  };
+
+  // 파일 업로드 핸들러
+  const handleFileUpload = async (file: File, documentType: string) => {
+    if (!customer) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("customerId", customer.customerId.toString());
+      formData.append("documentType", documentType);
+
+      const response = await apiClient.uploadFile(
+        API_ENDPOINTS.FILES.UPLOAD,
+        file,
+        {
+          customerId: customer.customerId,
+          documentType: documentType,
+        }
+      );
+
+      if (response.error) {
+        console.error("파일 업로드 실패:", response.error);
+        alert("파일 업로드에 실패했습니다.");
+        return;
+      }
+
+      // 성공 시 고객 정보 새로고침하여 파일 목록 업데이트
+      await fetchCustomer(customer.customerId.toString());
+      alert("파일이 성공적으로 업로드되었습니다.");
+    } catch (error) {
+      console.error("파일 업로드 중 오류:", error);
+      alert("파일 업로드 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 파일 삭제 핸들러
+  const handleFileDelete = async (fileId: number) => {
+    if (!customer) return;
+
+    try {
+      const response = await apiClient.delete(
+        API_ENDPOINTS.FILES.DELETE(fileId.toString())
+      );
+
+      if (response.error) {
+        console.error("파일 삭제 실패:", response.error);
+        alert("파일 삭제에 실패했습니다.");
+        return;
+      }
+
+      // 성공 시 고객 정보 새로고침하여 파일 목록 업데이트
+      await fetchCustomer(customer.customerId.toString());
+      alert("파일이 성공적으로 삭제되었습니다.");
+    } catch (error) {
+      console.error("파일 삭제 중 오류:", error);
+      alert("파일 삭제 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 문서 타입별 파일 필터링 함수
+  const getFilesByDocumentType = (documentType: string): CustomerFile[] => {
+    if (!customer?.customerFileList) return [];
+    return customer.customerFileList.filter(
+      (file) => file.category === documentType
+    );
   };
 
   if (loading) {
@@ -807,7 +874,71 @@ export function CustomerDetail() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <FileText className="mr-2 h-5 w-5" />
-            첨부 문서
+            첨부 문서 요약
+          </CardTitle>
+          <CardDescription>
+            수용가에 첨부된 모든 문서의 현황을 확인할 수 있습니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {customer.customerFileList && customer.customerFileList.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {
+                    customer.customerFileList.filter(
+                      (f) => f.category === "business_license"
+                    ).length
+                  }
+                </div>
+                <div className="text-sm text-blue-600">사업자 등록증</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {
+                    customer.customerFileList.filter(
+                      (f) => f.category === "electrical_diagram"
+                    ).length
+                  }
+                </div>
+                <div className="text-sm text-green-600">변전실 도면</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {
+                    customer.customerFileList.filter(
+                      (f) => f.category === "power_usage_data"
+                    ).length
+                  }
+                </div>
+                <div className="text-sm text-purple-600">전력사용량 데이터</div>
+              </div>
+              <div className="text-center p-4 bg-orange-50 rounded-lg">
+                <div className="text-2xl font-bold text-orange-600">
+                  {
+                    customer.customerFileList.filter(
+                      (f) => f.category === "other"
+                    ).length
+                  }
+                </div>
+                <div className="text-sm text-orange-600">기타 문서</div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium">첨부된 문서가 없습니다</p>
+              <p className="text-sm">아래에서 필요한 문서를 업로드해주세요.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileText className="mr-2 h-5 w-5" />
+            첨부 문서 관리
           </CardTitle>
           <CardDescription>
             수용가 관련 문서를 업로드하고 관리할 수 있습니다.
@@ -817,30 +948,36 @@ export function CustomerDetail() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <FileUpload
               customerId={customer.customerId}
-              documentType="business_license"
+              documentType="BUSINESS_LICENSE"
               title="사업자 등록증"
               description="사업자 등록증을 업로드해주세요."
+              files={getFilesByDocumentType("BUSINESS_LICENSE")}
+              onFileUpload={(file) =>
+                handleFileUpload(file, "BUSINESS_LICENSE")
+              }
+              onFileDelete={handleFileDelete}
             />
 
             <FileUpload
               customerId={customer.customerId}
-              documentType="electrical_diagram"
+              documentType="ELECTRICAL_DIAGRAM"
               title="변전실 도면 (단선결선도)"
               description="변전실 단선결선도를 업로드해주세요."
+              files={getFilesByDocumentType("ELECTRICAL_DIAGRAM")}
+              onFileUpload={(file) =>
+                handleFileUpload(file, "ELECTRICAL_DIAGRAM")
+              }
+              onFileDelete={handleFileDelete}
             />
 
             <FileUpload
               customerId={customer.customerId}
-              documentType="power_usage_data"
+              documentType="GOMETA_EXCEL"
               title="전력사용량 데이터 (고메타)"
               description="1월 또는 8월 중 전력사용량이 큰 자료를 업로드해주세요."
-            />
-
-            <FileUpload
-              customerId={customer.customerId}
-              documentType="other"
-              title="기타 문서"
-              description="기타 필요한 문서를 업로드해주세요."
+              files={getFilesByDocumentType("GOMETA_EXCEL")}
+              onFileUpload={(file) => handleFileUpload(file, "GOMETA_EXCEL")}
+              onFileDelete={handleFileDelete}
             />
           </div>
         </CardContent>

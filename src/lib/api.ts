@@ -208,6 +208,7 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/api/files/${id}`,
     GET: (id: string) => `/api/files/${id}`,
     DOWNLOAD: (id: string) => `/api/files/${id}/download`,
+    GENERATE_VIEW_URL: "/api/files/generateFileViewUrl",
   },
 } as const;
 
@@ -268,3 +269,38 @@ export const handleApiError = (error: any, operation: string) => {
 
   return error?.message || `${operation} 중 오류가 발생했습니다.`;
 };
+
+// 파일 조회 URL 생성 함수
+export async function generateFileViewUrl(
+  fileId: number,
+  fileKey: string
+): Promise<{ data?: any; error?: string }> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/files/generateFileViewUrl`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fileId: fileId,
+          fileKey: fileKey,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `HTTP error! status: ${response.status}, message: ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error) {
+    console.error("파일 조회 URL 생성 중 오류 발생:", error);
+    return { error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
