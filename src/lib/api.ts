@@ -251,7 +251,16 @@ export const handleApiError = (error: any, operation: string) => {
 // AWS S3 업로드용 URL을 얻는 함수
 export async function getUploadUrls(
   files: Array<{
-    category: "BUSINESS_LICENSE" | "ELECTRICAL_DIAGRAM" | "OTHER";
+    category:
+      | "BUSINESS_LICENSE"
+      | "ELECTRICAL_DIAGRAM"
+      | "GOMETA_EXCEL"
+      | "INSPECTION_REPORT"
+      | "CONTRACT"
+      | "SAVINGS_PROOF"
+      | "INSURANCE"
+      | "KEPCO_APPLICATION"
+      | "OTHER";
     extension: string;
     contentType: string;
   }>

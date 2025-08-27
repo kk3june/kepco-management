@@ -41,6 +41,21 @@ export function CustomerDetail() {
   const [salesmans, setSalesmans] = useState<Salesman[]>([]);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
 
+  // 문서 타입 정의
+  const documentTypes = [
+    { code: "BUSINESS_LICENSE", label: "사업자등록증" },
+    { code: "ELECTRICAL_DIAGRAM", label: "변전실 도면" },
+    { code: "GOMETA_EXCEL", label: "입주사별 전력사용량 자료" },
+    { code: "INSPECTION_REPORT", label: "실사 검토 보고서" },
+    { code: "CONTRACT", label: "계약서" },
+    { code: "SAVINGS_PROOF", label: "전기요금 절감 확인서" },
+    { code: "INSURANCE", label: "보증 보험 증권" },
+    { code: "KEPCO_APPLICATION", label: "한전 대관 신청서" },
+  ] as const;
+
+  // 문서 타입 코드 타입
+  type DocumentTypeCode = (typeof documentTypes)[number]["code"];
+
   useEffect(() => {
     if (id) {
       fetchCustomer(id);
@@ -265,23 +280,15 @@ export function CustomerDetail() {
   // 파일 업로드 핸들러
   const handleFileUpload = async (
     file: File,
-    documentType:
-      | "BUSINESS_LICENSE"
-      | "ELECTRICAL_DIAGRAM"
-      | "GOMETA_EXCEL"
-      | "OTHER"
+    documentType: DocumentTypeCode
   ) => {
     if (!customer) return;
 
     try {
-      // GOMETA_EXCEL을 OTHER로 매핑 (API 호환성을 위해)
-      const apiCategory =
-        documentType === "GOMETA_EXCEL" ? "OTHER" : documentType;
-
       // 1. 업로드 URL 요청
       const uploadUrlResponse = await getUploadUrls([
         {
-          category: apiCategory,
+          category: documentType,
           extension: file.name.split(".").pop() || "",
           contentType: file.type,
         },
@@ -304,15 +311,38 @@ export function CustomerDetail() {
       // 3. Customer update API를 통해 파일 정보 추가
       const newAttachmentFile: FileUploadRequest = {
         fileKey: uploadUrlData.fileKey,
-        category: documentType, // 원본 카테고리 유지
+        category: documentType,
         originalFileName: file.name,
         extension: file.name.split(".").pop() || "",
         contentType: file.type,
         size: file.size,
       };
 
+      // API 스펙에 맞는 requestData 구조
       const requestData = {
-        ...customer,
+        companyName: customer.companyName,
+        representative: customer.representative,
+        businessNumber: customer.businessNumber,
+        businessType: customer.businessType,
+        businessItem: customer.businessItem,
+        businessAddress: customer.businessAddress,
+        managerName: customer.managerName || "",
+        companyPhone: customer.companyPhone,
+        email: customer.email,
+        phoneNumber: customer.phoneNumber,
+        powerPlannerId: customer.powerPlannerId,
+        powerPlannerPassword: customer.powerPlannerPassword,
+        buildingType: customer.buildingType,
+        isTenantFactory: customer.tenantFactory,
+        januaryElectricUsage: customer.januaryElectricUsage,
+        augustElectricUsage: customer.augustElectricUsage,
+        salesmanId: customer.salesmanId,
+        engineerId: customer.engineerId,
+        projectCost: customer.projectCost,
+        electricitySavingRate: customer.electricitySavingRate,
+        subsidy: customer.subsidy,
+        projectPeriod: customer.projectPeriod,
+        progressStatus: customer.progressStatus,
         isDelete: false,
         newAttachmentFileList: [newAttachmentFile],
         deleteAttachmentFileList: [],
@@ -394,6 +424,20 @@ export function CustomerDetail() {
         </Button>
       </div>
     );
+  }
+
+  function getDocumentDescription(documentType: string): string {
+    const descriptions: Record<string, string> = {
+      BUSINESS_LICENSE: "사업자 등록증을 업로드해주세요.",
+      ELECTRICAL_DIAGRAM: "변전실 단선결선도를 업로드해주세요.",
+      GOMETA_EXCEL: "1월 또는 8월 중 전력사용량이 큰 자료를 업로드해주세요.",
+      INSPECTION_REPORT: "실사 검토 보고서를 업로드해주세요.",
+      CONTRACT: "계약서를 업로드해주세요.",
+      SAVINGS_PROOF: "전기요금 절감 확인서를 업로드해주세요.",
+      INSURANCE: "보증 보험 증권을 업로드해주세요.",
+      KEPCO_APPLICATION: "한전 대관 신청서를 업로드해주세요.",
+    };
+    return descriptions[documentType] || "문서를 업로드해주세요.";
   }
 
   return (
@@ -940,39 +984,18 @@ export function CustomerDetail() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <FileUpload
-              customerId={customer.customerId}
-              documentType="BUSINESS_LICENSE"
-              title="사업자 등록증"
-              description="사업자 등록증을 업로드해주세요."
-              files={getFilesByDocumentType("BUSINESS_LICENSE")}
-              onFileUpload={(file) =>
-                handleFileUpload(file, "BUSINESS_LICENSE")
-              }
-              onFileDelete={handleFileDelete}
-            />
-
-            <FileUpload
-              customerId={customer.customerId}
-              documentType="ELECTRICAL_DIAGRAM"
-              title="변전실 도면 (단선결선도)"
-              description="변전실 단선결선도를 업로드해주세요."
-              files={getFilesByDocumentType("ELECTRICAL_DIAGRAM")}
-              onFileUpload={(file) =>
-                handleFileUpload(file, "ELECTRICAL_DIAGRAM")
-              }
-              onFileDelete={handleFileDelete}
-            />
-
-            <FileUpload
-              customerId={customer.customerId}
-              documentType="GOMETA_EXCEL"
-              title="전력사용량 데이터 (고메타)"
-              description="1월 또는 8월 중 전력사용량이 큰 자료를 업로드해주세요."
-              files={getFilesByDocumentType("GOMETA_EXCEL")}
-              onFileUpload={(file) => handleFileUpload(file, "GOMETA_EXCEL")}
-              onFileDelete={handleFileDelete}
-            />
+            {documentTypes.map((docType) => (
+              <FileUpload
+                key={docType.code}
+                customerId={customer.customerId}
+                documentType={docType.code}
+                title={docType.label}
+                description={getDocumentDescription(docType.code)}
+                files={getFilesByDocumentType(docType.code)}
+                onFileUpload={(file) => handleFileUpload(file, docType.code)}
+                onFileDelete={handleFileDelete}
+              />
+            ))}
           </div>
         </CardContent>
       </Card>
