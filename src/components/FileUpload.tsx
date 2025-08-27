@@ -267,9 +267,7 @@ export function FileUpload({
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span>{previewFile?.originalFileName}</span>
-            </DialogTitle>
+            <DialogTitle>{previewFile?.originalFileName}</DialogTitle>
           </DialogHeader>
           <div className="flex justify-center items-center p-4">
             {previewFile && (
