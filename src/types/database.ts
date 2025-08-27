@@ -285,7 +285,7 @@ export interface CustomerFile {
   extension: string;
   contentType: string;
   size: number;
-  createdAt: string;
+  fileUrl: string;
 }
 
 export interface FileViewUrlResponse {

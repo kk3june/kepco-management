@@ -180,28 +180,6 @@ export const API_ENDPOINTS = {
     GET: (id: string) => `/api/customer/${id}`,
   },
 
-  // 공장 사용량
-  FACTORY_USAGE: {
-    LIST: "/api/factory-usage",
-    CREATE: "/api/factory-usage/register",
-    UPDATE: (id: string) => `/api/factory-usage/${id}`,
-    DELETE: (id: string) => `/api/factory-usage/${id}`,
-    GET: (id: string) => `/api/factory-usage/${id}`,
-    BY_CUSTOMER: (customerId: string) =>
-      `/api/factory-usage/customer/${customerId}`,
-  },
-
-  // 타당성 검토
-  FEASIBILITY_STUDIES: {
-    LIST: "/api/feasibility-studies",
-    CREATE: "/api/feasibility-studies/register",
-    UPDATE: (id: string) => `/api/feasibility-studies/${id}`,
-    DELETE: (id: string) => `/api/feasibility-studies/${id}`,
-    GET: (id: string) => `/api/feasibility-studies/${id}`,
-    BY_CUSTOMER: (customerId: string) =>
-      `/api/feasibility-studies/customer/${customerId}`,
-  },
-
   // 파일 업로드
   FILES: {
     UPLOAD: "/api/files/upload",
@@ -270,25 +248,36 @@ export const handleApiError = (error: any, operation: string) => {
   return error?.message || `${operation} 중 오류가 발생했습니다.`;
 };
 
-// 파일 조회 URL 생성 함수
-export async function generateFileViewUrl(
-  fileId: number,
-  fileKey: string
-): Promise<{ data?: any; error?: string }> {
+// AWS S3 업로드용 URL을 얻는 함수
+export async function getUploadUrls(
+  files: Array<{
+    category: "BUSINESS_LICENSE" | "ELECTRICAL_DIAGRAM" | "OTHER";
+    extension: string;
+    contentType: string;
+  }>
+): Promise<{
+  success: boolean;
+  uploadUrls?: Array<{
+    fileKey: string;
+    uploadUrl: string;
+    category: string;
+  }>;
+  message?: string;
+}> {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/files/generateFileViewUrl`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fileId: fileId,
-          fileKey: fileKey,
-        }),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/api/file/upload`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uploadUrlReqList: files.map((file) => ({
+          category: file.category,
+          extension: file.extension,
+          contentType: file.contentType,
+        })),
+      }),
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -298,9 +287,60 @@ export async function generateFileViewUrl(
     }
 
     const data = await response.json();
-    return { data };
+
+    if (data.status === 200 && data.data?.uploadUrlResList) {
+      const uploadUrls = data.data.uploadUrlResList.map(
+        (item: any, index: number) => ({
+          fileKey: item.fileKey,
+          uploadUrl: item.uploadUrl,
+          category: files[index].category,
+        })
+      );
+
+      return {
+        success: true,
+        uploadUrls,
+      };
+    } else {
+      throw new Error(data.message || "업로드 URL을 가져오는데 실패했습니다.");
+    }
   } catch (error) {
-    console.error("파일 조회 URL 생성 중 오류 발생:", error);
-    return { error: error instanceof Error ? error.message : "Unknown error" };
+    console.error("업로드 URL 요청 중 오류 발생:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "알 수 없는 오류가 발생했습니다.",
+    };
+  }
+}
+
+// S3에 직접 파일 업로드하는 함수
+export async function uploadToS3(
+  file: File,
+  uploadUrl: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const response = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type,
+      },
+      body: file,
+    });
+
+    if (response.ok) {
+      return { success: true };
+    } else {
+      throw new Error(`S3 업로드 실패: ${response.status}`);
+    }
+  } catch (error) {
+    console.error("S3 업로드 중 오류 발생:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "S3 업로드에 실패했습니다.",
+    };
   }
 }

@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { generateFileViewUrl } from "@/lib/api";
 import { CustomerFile } from "@/types/database";
 import {
   Eye,
@@ -91,26 +90,6 @@ export function FileUpload({
     }
   };
 
-  const handleFileView = async (file: CustomerFile) => {
-    try {
-      const response = await generateFileViewUrl(file.fileId, file.fileKey);
-
-      if (response.error) {
-        console.error("파일 조회 URL 생성 실패:", response.error);
-        alert("파일 조회에 실패했습니다.");
-        return;
-      }
-
-      if (response.data?.fileViewUrl) {
-        // 새 창에서 파일 열기
-        window.open(response.data.fileViewUrl, "_blank");
-      }
-    } catch (error) {
-      console.error("파일 조회 중 오류:", error);
-      alert("파일 조회 중 오류가 발생했습니다.");
-    }
-  };
-
   const handleFileDelete = (fileId: number) => {
     if (onFileDelete) {
       if (confirm("정말로 이 파일을 삭제하시겠습니까?")) {
@@ -144,14 +123,20 @@ export function FileUpload({
 
   const getDocumentTypeText = (type: string) => {
     const typeMap = {
-      business_license: "사업자 등록증",
-      electrical_diagram: "변전실 도면",
-      power_usage_data: "전력사용량 데이터",
-      other: "기타 문서",
+      BUSINESS_LICENSE: "사업자 등록증",
+      ELECTRICAL_DIAGRAM: "변전실 도면",
+      GOMETA_EXCEL: "입주사별 전력사용량 자료",
+      INSPECTION_REPORT: "실사 검토 보고서",
+      CONTRACT: "계약서",
+      SAVINGS_PROOF: "전기요금 절감 확인서",
+      INSURANCE: "보증 보험 증권",
+      KEPCO_APPLICATION: "한전 대관 신청서",
+      OTHER: "기타 문서",
     };
     return typeMap[type as keyof typeof typeMap] || type;
   };
 
+  console.log(files);
   return (
     <Card>
       <CardHeader>
@@ -209,15 +194,12 @@ export function FileUpload({
                         <span>•</span>
                         <span>{file.extension.toUpperCase()}</span>
                         <span>•</span>
-                        <span>
-                          {new Date(file.createdAt).toLocaleDateString("ko-KR")}
-                        </span>
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Button
-                      onClick={() => handleFileView(file)}
+                      onClick={() => console.log("file", file)}
                       variant="outline"
                       size="sm"
                       className="h-8 px-2 hover:bg-blue-50"
