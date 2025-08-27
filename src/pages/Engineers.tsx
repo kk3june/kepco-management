@@ -84,7 +84,7 @@ export function Engineers() {
     try {
       if (editingEngineer) {
         // 수정
-        const response = await apiClient.put(
+        const response = await apiClient.patch(
           API_ENDPOINTS.ENGINEERS.UPDATE(editingEngineer.id.toString()),
           data
         );

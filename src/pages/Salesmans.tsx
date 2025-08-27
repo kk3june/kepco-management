@@ -101,7 +101,7 @@ export function Salesmans() {
           business_address: data.businessAddress || "",
         };
 
-        const response = await apiClient.put(
+        const response = await apiClient.patch(
           API_ENDPOINTS.SALES_REPS.UPDATE(editingSalesman.id.toString()),
           updateData
         );
