@@ -108,6 +108,7 @@ export interface Customer {
   tenantFactory: boolean;
   createdAt?: string;
   updatedAt?: string;
+  customerFileList?: CustomerFile[];
 }
 
 export interface AddCustomerRequest extends Customer {
@@ -274,4 +275,22 @@ export interface Database {
       };
     };
   };
+}
+
+export interface CustomerFile {
+  fileId: number;
+  fileKey: string;
+  category: string;
+  originalFileName: string;
+  extension: string;
+  contentType: string;
+  size: number;
+  createdAt: string;
+}
+
+export interface FileViewUrlResponse {
+  fileViewUrl: string;
+  fileName: string;
+  fileSize: number;
+  contentType: string;
 }
