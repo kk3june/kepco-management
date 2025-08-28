@@ -147,8 +147,7 @@ export function CustomerForm({
       powerPlannerId: "",
       powerPlannerPassword: "",
       buildingType: undefined,
-      januaryElectricUsage: 0,
-      augustElectricUsage: 0,
+      tenantCompanyList: [],
       salesmanId: null,
       engineerId: null,
       projectCost: 0,
@@ -179,8 +178,7 @@ export function CustomerForm({
         powerPlannerId: "",
         powerPlannerPassword: "",
         buildingType: undefined,
-        januaryElectricUsage: 0,
-        augustElectricUsage: 0,
+        tenantCompanyList: [],
         salesmanId: null,
         engineerId: null,
         projectCost: 0,
@@ -242,7 +240,7 @@ export function CustomerForm({
 
       // 공장인 경우 전력사용량 검증
       if (data.buildingType === "FACTORY" && !data.tenantFactory) {
-        if (data.januaryElectricUsage <= 0 || data.augustElectricUsage <= 0) {
+        if (data.tenantCompanyList.length === 0) {
           toast.error(
             "입력 오류",
             "공장 단독 사용인 경우 1월과 8월 전기사용량을 입력해주세요."
@@ -267,17 +265,12 @@ export function CustomerForm({
       // 임차 업체 정보 처리
       if (data.tenantFactory && data.buildingType === "FACTORY") {
         // 임차 업체들의 전력 사용량을 합산
-        const totalJanUsage = tenantCompanies.reduce(
-          (sum, company) => sum + (parseInt(company.jan) || 0),
-          0
-        );
-        const totalAugUsage = tenantCompanies.reduce(
-          (sum, company) => sum + (parseInt(company.aug) || 0),
-          0
-        );
 
-        data.januaryElectricUsage = totalJanUsage;
-        data.augustElectricUsage = totalAugUsage;
+        data.tenantCompanyList = tenantCompanies.map((company) => ({
+          tenantCompanyName: company.name,
+          januaryElectricUsage: parseInt(company.jan),
+          augustElectricUsage: parseInt(company.aug),
+        }));
       }
 
       // 첨부파일 목록 생성
