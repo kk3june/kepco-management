@@ -10,6 +10,15 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+type TokenExpirationCallback = () => void;
+
+// 전역 토큰 만료 콜백 변수
+let tokenExpirationCallback: TokenExpirationCallback | null = null;
+
+// 토큰 만료 콜백 설정 함수
+export function setTokenExpirationCallback(callback: TokenExpirationCallback) {
+  tokenExpirationCallback = callback;
+}
 class ApiClient {
   private baseUrl: string;
 
@@ -45,6 +54,15 @@ class ApiClient {
       });
 
       if (!response.ok) {
+        // 403 에러 처리 추가
+        if (response.status === 403) {
+          // 토큰 만료 처리
+          this.handleTokenExpiration();
+          return {
+            error: "인증이 만료되었습니다. 다시 로그인해주세요.",
+          };
+        }
+
         const errorData = await response.json().catch(() => ({}));
         return {
           error:
@@ -61,6 +79,19 @@ class ApiClient {
         error:
           error instanceof Error ? error.message : "Unknown error occurred",
       };
+    }
+  }
+
+  private handleTokenExpiration() {
+    // localStorage에서 토큰 제거
+    localStorage.removeItem("auth_token");
+
+    // 콜백 함수가 설정되어 있으면 호출
+    if (tokenExpirationCallback) {
+      tokenExpirationCallback();
+    } else {
+      // 기본 동작: 로그인 페이지로 리다이렉트
+      window.location.href = "/login";
     }
   }
 
