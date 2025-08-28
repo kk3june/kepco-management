@@ -18,9 +18,14 @@ interface LayoutProps {
 
 const navigation = [
   { name: "대시보드", href: "/", icon: LayoutDashboard },
-  { name: "영업자 관리", href: "/salesmans", icon: Users },
-  { name: "기술사 관리", href: "/engineers", icon: HardHat },
-  { name: "수용가 관리", href: "/customers", icon: Building2 },
+  { name: "영업자 관리", href: "/salesmans", icon: Users, roles: ["ADMIN"] },
+  { name: "기술사 관리", href: "/engineers", icon: HardHat, roles: ["ADMIN"] },
+  {
+    name: "수용가 관리",
+    href: "/customers",
+    icon: Building2,
+    roles: ["ADMIN", "SALESMAN", "ENGINEER"],
+  },
 ];
 
 export function Layout({ children }: LayoutProps) {
@@ -30,6 +35,11 @@ export function Layout({ children }: LayoutProps) {
   const handleLogout = async () => {
     await signOut();
   };
+
+  // 사용자 role에 따라 접근 가능한 메뉴 필터링
+  const accessibleNavigation = navigation.filter(
+    (item) => !item.roles || item.roles.includes(user?.role || "")
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -46,6 +56,11 @@ export function Layout({ children }: LayoutProps) {
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <User className="h-4 w-4" />
                 <span>{user?.username}</span>
+                <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                  {user?.role === "ADMIN" && "관리자"}
+                  {user?.role === "SALESMAN" && "영업사원"}
+                  {user?.role === "ENGINEER" && "기술사"}
+                </span>
               </div>
               <Button
                 variant="outline"
@@ -69,7 +84,7 @@ export function Layout({ children }: LayoutProps) {
         <nav className="w-64 bg-white shadow-sm min-h-screen border-r">
           <div className="px-4 py-6">
             <ul className="space-y-2">
-              {navigation.map((item) => {
+              {accessibleNavigation.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
                   <li key={item.name}>

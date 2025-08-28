@@ -204,7 +204,8 @@ export const API_ENDPOINTS = {
 
   // 고객
   CUSTOMERS: {
-    LIST: "/api/home/admin-customer",
+    LIST: "/api/home/admin-customer" as string,
+    USER_CUSTOMERS: "/api/home/user-customer" as string, // 사용자별 수용가 조회
     CREATE: "/api/customer",
     UPDATE: (id: string) => `/api/customer/${id}`,
     DELETE: (id: string) => `/api/customer/${id}`,
