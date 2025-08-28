@@ -14,6 +14,7 @@ import {
   getUploadUrls,
   uploadToS3,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   ApiResponse,
   Customer,
@@ -29,6 +30,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 export function CustomerDetail() {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const [customer, setCustomer] = useState<
     (Customer & { customerId: number }) | null
@@ -55,13 +57,37 @@ export function CustomerDetail() {
   // 문서 타입 코드 타입
   type DocumentTypeCode = (typeof documentTypes)[number]["code"];
 
+  // 사용자의 파일 관리 권한 확인
+  const canManageFiles = () => {
+    if (!user || !customer) return false;
+
+    // ADMIN은 모든 권한
+    if (user.role === "ADMIN") return true;
+
+    // SALESMAN은 자신이 담당하는 수용가에 대해서만 권한
+    if (user.role === "SALESMAN") {
+      // 담당 영업사원 이름과 현재 로그인한 사용자 username 비교
+      return customer.salesmanName === user.username;
+    }
+
+    // ENGINEER는 읽기 전용
+    if (user.role === "ENGINEER") {
+      return false;
+    }
+
+    return false;
+  };
+
   useEffect(() => {
     if (id) {
       fetchCustomer(id);
     }
-    fetchSalesmans();
-    fetchEngineers();
-  }, [id]);
+    // ADMIN만 영업사원과 기술사 목록을 가져옴
+    if (user?.role === "ADMIN") {
+      fetchSalesmans();
+      fetchEngineers();
+    }
+  }, [id, user?.role]);
 
   const fetchCustomer = async (customerId: string) => {
     try {
@@ -438,20 +464,22 @@ export function CustomerDetail() {
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
-              {isEditing ? (
-                <>
-                  <Button onClick={handleSave} size="sm">
-                    저장
+              {/* ADMIN과 SALESMAN(담당자인 경우)만 수정 가능 */}
+              {canManageFiles() &&
+                (isEditing ? (
+                  <>
+                    <Button onClick={handleSave} size="sm">
+                      저장
+                    </Button>
+                    <Button onClick={cancelEditing} variant="outline" size="sm">
+                      취소
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={startEditing} size="sm">
+                    수정
                   </Button>
-                  <Button onClick={cancelEditing} variant="outline" size="sm">
-                    취소
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={startEditing} size="sm">
-                  수정
-                </Button>
-              )}
+                ))}
             </div>
           </div>
         </CardHeader>
@@ -460,7 +488,7 @@ export function CustomerDetail() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div>
               <p className="text-sm font-medium text-gray-500">건물형태</p>
-              {isEditing ? (
+              {isEditing && canManageFiles() ? (
                 <select
                   value={editData.buildingType || customer.buildingType}
                   onChange={(e) =>
@@ -489,7 +517,7 @@ export function CustomerDetail() {
               <p className="text-sm font-medium text-gray-500">
                 사업자등록번호
               </p>
-              {isEditing ? (
+              {isEditing && canManageFiles() ? (
                 <input
                   type="text"
                   value={editData.businessNumber || ""}
@@ -504,7 +532,7 @@ export function CustomerDetail() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">담당자</p>
-              {isEditing ? (
+              {isEditing && canManageFiles() ? (
                 <input
                   type="text"
                   value={editData.managerName || ""}
@@ -519,7 +547,7 @@ export function CustomerDetail() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">연락처</p>
-              {isEditing ? (
+              {isEditing && canManageFiles() ? (
                 <input
                   type="text"
                   value={editData.companyPhone || ""}
@@ -541,7 +569,7 @@ export function CustomerDetail() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-500">업종/업태</p>
-                  {isEditing ? (
+                  {isEditing && canManageFiles() ? (
                     <div className="space-y-2">
                       <input
                         type="text"
@@ -570,7 +598,7 @@ export function CustomerDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">사업기간</p>
-                  {isEditing ? (
+                  {isEditing && canManageFiles() ? (
                     <input
                       type="text"
                       value={editData.projectPeriod || ""}
@@ -592,7 +620,7 @@ export function CustomerDetail() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-500">휴대전화</p>
-                  {isEditing ? (
+                  {isEditing && canManageFiles() ? (
                     <input
                       type="text"
                       value={editData.phoneNumber || ""}
@@ -607,7 +635,7 @@ export function CustomerDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">이메일</p>
-                  {isEditing ? (
+                  {isEditing && canManageFiles() ? (
                     <input
                       type="email"
                       value={editData.email || ""}
@@ -630,7 +658,7 @@ export function CustomerDetail() {
               <h4 className="font-medium text-gray-900 mb-3">주소</h4>
               <div className="flex items-start">
                 <MapPin className="mr-2 h-4 w-4 mt-0.5 text-gray-400" />
-                {isEditing ? (
+                {isEditing && canManageFiles() ? (
                   <input
                     type="text"
                     value={editData.businessAddress || ""}
@@ -649,7 +677,7 @@ export function CustomerDetail() {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-500">아이디</p>
-                  {isEditing ? (
+                  {isEditing && canManageFiles() ? (
                     <input
                       type="text"
                       value={editData.powerPlannerId || ""}
@@ -690,7 +718,7 @@ export function CustomerDetail() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <p className="text-sm font-medium text-gray-500">사업비용</p>
-                {isEditing ? (
+                {isEditing && canManageFiles() ? (
                   <input
                     type="number"
                     value={editData.projectCost || 0}
@@ -716,7 +744,7 @@ export function CustomerDetail() {
                 <p className="text-sm font-medium text-gray-500">
                   전기요금 절감율
                 </p>
-                {isEditing ? (
+                {isEditing && canManageFiles() ? (
                   <input
                     type="number"
                     step="0.1"
@@ -739,7 +767,7 @@ export function CustomerDetail() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-500">보조금</p>
-                {isEditing ? (
+                {isEditing && canManageFiles() ? (
                   <input
                     type="number"
                     value={editData.subsidy || 0}
@@ -766,153 +794,160 @@ export function CustomerDetail() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4 pt-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                담당 영업자
-              </label>
-              <div className="flex space-x-2">
-                <select
-                  value={customer?.salesmanId?.toString() || "0"}
-                  onChange={(e) => {
-                    const newSalesmanId =
-                      e.target.value === "0" ? null : parseInt(e.target.value);
-                    if (customer) {
-                      setCustomer({ ...customer, salesmanId: newSalesmanId });
-                    }
-                  }}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
-                >
-                  <option value="0" className="py-1">
-                    담당자 선택
-                  </option>
-                  {salesmans.map((rep) => (
-                    <option
-                      key={rep.id}
-                      value={rep.id.toString()}
-                      className="py-1"
-                    >
-                      {rep.name}
+      {/* ADMIN과 SALESMAN(담당자인 경우)만 담당자 변경 가능 */}
+      {canManageFiles() && (
+        <Card>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 pt-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  담당 영업자
+                </label>
+                <div className="flex space-x-2">
+                  <select
+                    value={customer?.salesmanId?.toString() || "0"}
+                    onChange={(e) => {
+                      const newSalesmanId =
+                        e.target.value === "0"
+                          ? null
+                          : parseInt(e.target.value);
+                      if (customer) {
+                        setCustomer({ ...customer, salesmanId: newSalesmanId });
+                      }
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
+                  >
+                    <option value="0" className="py-1">
+                      담당자 선택
                     </option>
-                  ))}
-                </select>
-                <Button
-                  onClick={async () => {
-                    if (!customer) return;
-                    try {
-                      const requestData = {
-                        ...customer,
-                        isDelete: false,
-                        newAttachmentFileList: [],
-                        deleteAttachmentFileList: [],
-                      };
+                    {salesmans.map((rep) => (
+                      <option
+                        key={rep.id}
+                        value={rep.id.toString()}
+                        className="py-1"
+                      >
+                        {rep.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    onClick={async () => {
+                      if (!customer) return;
+                      try {
+                        const requestData = {
+                          ...customer,
+                          isDelete: false,
+                          newAttachmentFileList: [],
+                          deleteAttachmentFileList: [],
+                        };
 
-                      const response = await apiClient.patch(
-                        API_ENDPOINTS.CUSTOMERS.UPDATE(
-                          customer.customerId.toString()
-                        ),
-                        requestData
-                      );
-
-                      if (response.error) {
-                        console.error(
-                          "Error updating salesman:",
-                          response.error
+                        const response = await apiClient.patch(
+                          API_ENDPOINTS.CUSTOMERS.UPDATE(
+                            customer.customerId.toString()
+                          ),
+                          requestData
                         );
+
+                        if (response.error) {
+                          console.error(
+                            "Error updating salesman:",
+                            response.error
+                          );
+                          alert("영업사원 변경 중 오류가 발생했습니다.");
+                          return;
+                        }
+
+                        alert("영업사원이 변경되었습니다.");
+                      } catch (error) {
+                        console.error("Error:", error);
                         alert("영업사원 변경 중 오류가 발생했습니다.");
-                        return;
                       }
-
-                      alert("영업사원이 변경되었습니다.");
-                    } catch (error) {
-                      console.error("Error:", error);
-                      alert("영업사원 변경 중 오류가 발생했습니다.");
-                    }
-                  }}
-                  size="sm"
-                  className="h-10 px-3"
-                >
-                  변경
-                </Button>
+                    }}
+                    size="sm"
+                    className="h-10 px-3"
+                  >
+                    변경
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                담당 기술사
-              </label>
-              <div className="flex space-x-2">
-                <select
-                  value={customer?.engineerId?.toString() || "0"}
-                  onChange={(e) => {
-                    const newEngineerId =
-                      e.target.value === "0" ? null : parseInt(e.target.value);
-                    if (customer) {
-                      setCustomer({ ...customer, engineerId: newEngineerId });
-                    }
-                  }}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
-                >
-                  <option value="0" className="py-1">
-                    기술사 선택
-                  </option>
-                  {engineers.map((engineer) => (
-                    <option
-                      key={engineer.id}
-                      value={engineer.id.toString()}
-                      className="py-1"
-                    >
-                      {engineer.name}
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  담당 기술사
+                </label>
+                <div className="flex space-x-2">
+                  <select
+                    value={customer?.engineerId?.toString() || "0"}
+                    onChange={(e) => {
+                      const newEngineerId =
+                        e.target.value === "0"
+                          ? null
+                          : parseInt(e.target.value);
+                      if (customer) {
+                        setCustomer({ ...customer, engineerId: newEngineerId });
+                      }
+                    }}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
+                  >
+                    <option value="0" className="py-1">
+                      기술사 선택
                     </option>
-                  ))}
-                </select>
-                <Button
-                  onClick={async () => {
-                    if (!customer) return;
-                    try {
-                      const requestData = {
-                        ...customer,
-                        isDelete: false,
-                        newAttachmentFileList: [],
-                        deleteAttachmentFileList: [],
-                      };
+                    {engineers.map((engineer) => (
+                      <option
+                        key={engineer.id}
+                        value={engineer.id.toString()}
+                        className="py-1"
+                      >
+                        {engineer.name}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    onClick={async () => {
+                      if (!customer) return;
+                      try {
+                        const requestData = {
+                          ...customer,
+                          isDelete: false,
+                          newAttachmentFileList: [],
+                          deleteAttachmentFileList: [],
+                        };
 
-                      const response = await apiClient.patch(
-                        API_ENDPOINTS.CUSTOMERS.UPDATE(
-                          customer.customerId.toString()
-                        ),
-                        requestData
-                      );
-
-                      if (response.error) {
-                        console.error(
-                          "Error updating engineer:",
-                          response.error
+                        const response = await apiClient.patch(
+                          API_ENDPOINTS.CUSTOMERS.UPDATE(
+                            customer.customerId.toString()
+                          ),
+                          requestData
                         );
-                        alert("기술사 변경 중 오류가 발생했습니다.");
-                        return;
-                      }
 
-                      alert("기술사가 변경되었습니다.");
-                    } catch (error) {
-                      console.error("Error:", error);
-                      alert("기술사 변경 중 오류가 발생했습니다.");
-                    }
-                  }}
-                  size="sm"
-                  className="h-10 px-3"
-                >
-                  변경
-                </Button>
+                        if (response.error) {
+                          console.error(
+                            "Error updating engineer:",
+                            response.error
+                          );
+                          alert("기술사 변경 중 오류가 발생했습니다.");
+                          return;
+                        }
+
+                        alert("기술사가 변경되었습니다.");
+                      } catch (error) {
+                        console.error("Error:", error);
+                        alert("기술사 변경 중 오류가 발생했습니다.");
+                      }
+                    }}
+                    size="sm"
+                    className="h-10 px-3"
+                  >
+                    변경
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* 첨부 문서 섹션 */}
+      {/* 첨부 문서 섹션 - 모든 사용자가 볼 수 있음 */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -921,6 +956,7 @@ export function CustomerDetail() {
           </CardTitle>
           <CardDescription>
             수용가 관련 문서를 업로드하고 관리할 수 있습니다.
+            {!canManageFiles() && " (읽기 전용)"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -935,6 +971,7 @@ export function CustomerDetail() {
                 files={getFilesByDocumentType(docType.code)}
                 onFileUpload={(file) => handleFileUpload(file, docType.code)}
                 onFileDelete={handleFileDelete}
+                readOnly={!canManageFiles()}
               />
             ))}
           </div>
