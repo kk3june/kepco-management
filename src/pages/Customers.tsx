@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 import { API_ENDPOINTS, apiClient, checkCompanyName } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import {
   AddCustomerRequest,
@@ -31,6 +32,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 export function Customers() {
+  const { user } = useAuth();
   const [customers, setCustomers] = useState<CustomerListItem[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -44,14 +46,37 @@ export function Customers() {
     customerName: "",
   });
 
+  // 사용자가 수용가를 관리할 수 있는 권한 확인
+  const canManageCustomer = (customer: CustomerListItem) => {
+    if (!user) return false;
+
+    // ADMIN은 모든 권한
+    if (user.role === "ADMIN") return true;
+
+    // SALESMAN은 자신이 담당하는 수용가에 대해서만 권한
+    if (user.role === "SALESMAN") {
+      return customer.salesmanName === user.username;
+    }
+
+    // ENGINEER는 권한 없음
+    return false;
+  };
+
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchCustomers = async () => {
     try {
+      let endpoint = API_ENDPOINTS.CUSTOMERS.LIST;
+
+      // salesman이나 engineer인 경우 자신이 담당하는 수용가만 조회
+      if (user?.role === "SALESMAN" || user?.role === "ENGINEER") {
+        endpoint = API_ENDPOINTS.CUSTOMERS.USER_CUSTOMERS;
+      }
+
       const response = await apiClient.get<ApiResponse<CustomerResponse>>(
-        API_ENDPOINTS.CUSTOMERS.LIST
+        endpoint
       );
 
       if (response.error) {
@@ -206,21 +231,34 @@ export function Customers() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">수용가 관리</h1>
-          <p className="text-gray-600">전기공사 고객사를 관리합니다.</p>
+          <p className="text-gray-600">
+            {user?.role === "ADMIN"
+              ? "전기공사 고객사를 관리합니다."
+              : "담당하고 있는 수용가 목록입니다."}
+          </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="mr-2 h-4 w-4" />
-          수용가 추가
-        </Button>
+        {/* ADMIN만 수용가 추가 버튼 표시 */}
+        {user?.role === "ADMIN" && (
+          <Button onClick={handleCreate}>
+            <Plus className="mr-2 h-4 w-4" />
+            수용가 추가
+          </Button>
+        )}
       </div>
 
       {customers.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-gray-500 mb-4">등록된 수용가가 없습니다.</p>
-            <Button onClick={handleCreate}>
-              <Plus className="mr-2 h-4 w-4" />첫 수용가 추가하기
-            </Button>
+            <p className="text-gray-500 mb-4">
+              {user?.role === "ADMIN"
+                ? "등록된 수용가가 없습니다."
+                : "담당하고 있는 수용가가 없습니다."}
+            </p>
+            {user?.role === "ADMIN" && (
+              <Button onClick={handleCreate}>
+                <Plus className="mr-2 h-4 w-4" />첫 수용가 추가하기
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -228,8 +266,9 @@ export function Customers() {
           <CardHeader>
             <CardTitle>수용가 목록</CardTitle>
             <CardDescription>
-              등록된 수용가 목록입니다. 상세보기를 클릭하여 자세한 정보를 확인할
-              수 있습니다.
+              {user?.role === "ADMIN"
+                ? "등록된 수용가 목록입니다. 상세보기를 클릭하여 자세한 정보를 확인할 수 있습니다."
+                : "담당하고 있는 수용가 목록입니다. 상세보기를 클릭하여 자세한 정보를 확인할 수 있습니다."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -291,19 +330,22 @@ export function Customers() {
                             <Eye className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            handleDeleteClick(
-                              customer.customerId.toString(),
-                              customer.companyName || "수용가"
-                            )
-                          }
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {/* ADMIN과 SALESMAN(담당자인 경우)만 삭제 버튼 표시 */}
+                        {canManageCustomer(customer) && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() =>
+                              handleDeleteClick(
+                                customer.customerId.toString(),
+                                customer.companyName || "수용가"
+                              )
+                            }
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -314,11 +356,14 @@ export function Customers() {
         </Card>
       )}
 
-      <CustomerForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleFormSubmit}
-      />
+      {/* ADMIN만 수용가 추가 폼 표시 */}
+      {user?.role === "ADMIN" && (
+        <CustomerForm
+          open={isFormOpen}
+          onOpenChange={setIsFormOpen}
+          onSubmit={handleFormSubmit}
+        />
+      )}
 
       <ConfirmDialog
         isOpen={deleteDialog.isOpen}
