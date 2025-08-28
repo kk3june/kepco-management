@@ -1,4 +1,3 @@
-import { CustomerForm } from "@/components/CustomerForm";
 import { FileUpload } from "@/components/FileUpload";
 import { Button } from "@/components/ui/Button";
 import {
@@ -34,7 +33,7 @@ export function CustomerDetail() {
   const [customer, setCustomer] = useState<
     (Customer & { customerId: number }) | null
   >(null);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Customer>>({});
@@ -167,11 +166,9 @@ export function CustomerDetail() {
         powerPlannerPassword:
           editData.powerPlannerPassword || customer.powerPlannerPassword,
         buildingType: editData.buildingType || customer.buildingType,
-        isTenantFactory: editData.tenantFactory ?? customer.tenantFactory,
-        januaryElectricUsage:
-          editData.januaryElectricUsage ?? customer.januaryElectricUsage,
-        augustElectricUsage:
-          editData.augustElectricUsage ?? customer.augustElectricUsage,
+        tenantFactory: editData.tenantFactory ?? customer.tenantFactory,
+        newTenantCompanyList: [],
+        deleteTenantCompanyList: [],
         salesmanId: customer.salesmanId,
         engineerId: customer.engineerId,
         projectCost: editData.projectCost ?? customer.projectCost,
@@ -204,62 +201,6 @@ export function CustomerDetail() {
     } catch (error) {
       console.error("Error:", error);
       alert("수정 중 오류가 발생했습니다.");
-    }
-  };
-
-  const handleFormSubmit = async (
-    data: Omit<
-      Customer,
-      "id" | "createdAt" | "updatedAt" | "salesmanId" | "engineerId"
-    >
-  ) => {
-    if (!customer) return;
-
-    try {
-      // API 요청에 필요한 형태로 데이터 변환 (API 스펙에 맞게)
-      const requestData = {
-        companyName: data.companyName,
-        representative: data.representative,
-        businessNumber: data.businessNumber,
-        businessType: data.businessType,
-        businessItem: data.businessItem,
-        businessAddress: data.businessAddress,
-        managerName: data.managerName,
-        companyPhone: data.companyPhone,
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        powerPlannerId: data.powerPlannerId,
-        powerPlannerPassword: data.powerPlannerPassword,
-        buildingType: data.buildingType,
-        isTenantFactory: data.tenantFactory,
-        januaryElectricUsage: data.januaryElectricUsage,
-        augustElectricUsage: data.augustElectricUsage,
-        salesmanId: customer.salesmanId,
-        engineerId: customer.engineerId,
-        projectCost: data.projectCost,
-        electricitySavingRate: data.electricitySavingRate,
-        subsidy: data.subsidy,
-        projectPeriod: data.projectPeriod,
-        progressStatus: data.progressStatus,
-        isDelete: false,
-        newAttachmentFileList: [],
-        deleteAttachmentFileList: [],
-      };
-
-      const response = await apiClient.patch(
-        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
-        requestData
-      );
-
-      if (response.error) {
-        console.error("Error updating customer:", response.error);
-        return;
-      }
-
-      setIsFormOpen(false);
-      fetchCustomer(customer.customerId.toString());
-    } catch (error) {
-      console.error("Error:", error);
     }
   };
 
@@ -333,9 +274,9 @@ export function CustomerDetail() {
         powerPlannerId: customer.powerPlannerId,
         powerPlannerPassword: customer.powerPlannerPassword,
         buildingType: customer.buildingType,
-        isTenantFactory: customer.tenantFactory,
-        januaryElectricUsage: customer.januaryElectricUsage,
-        augustElectricUsage: customer.augustElectricUsage,
+        tenantFactory: customer.tenantFactory,
+        newTenantCompanyList: [],
+        deleteTenantCompanyList: [],
         salesmanId: customer.salesmanId,
         engineerId: customer.engineerId,
         projectCost: customer.projectCost,
@@ -999,12 +940,6 @@ export function CustomerDetail() {
           </div>
         </CardContent>
       </Card>
-
-      <CustomerForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSubmit={handleFormSubmit}
-      />
     </div>
   );
 }

@@ -82,49 +82,18 @@ export type ProgressStatus =
   | "COMPLETE"
   | "REJECTED";
 
+export type Category =
+  | "BUSINESS_LICENSE"
+  | "ELECTRICAL_DIAGRAM"
+  | "GOMETA_EXCEL"
+  | "INSPECTION_REPORT"
+  | "CONTRACT"
+  | "SAVINGS_PROOF"
+  | "INSURANCE"
+  | "KEPCO_APPLICATION"
+  | "OTHER";
 export interface Customer {
-  companyName: string;
-  representative: string;
-  businessNumber: string;
-  businessType: string;
-  businessItem: string;
-  businessAddress: string;
-  managerName?: string;
-  companyPhone: string;
-  email: string;
-  phoneNumber: string;
-  powerPlannerId: string;
-  powerPlannerPassword: string;
-  buildingType: BuildingType;
-  januaryElectricUsage: number;
-  augustElectricUsage: number;
-  salesmanId: number | null;
-  engineerId: number | null;
-  projectCost: number;
-  electricitySavingRate: number;
-  subsidy: number;
-  projectPeriod: string;
-  progressStatus: ProgressStatus;
-  tenantFactory: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-  customerFileList?: CustomerFile[];
-}
-
-export interface AddCustomerRequest extends Customer {
-  attachmentFileList: AttachmentFile[];
-}
-
-export interface AttachmentFile {
-  fileKey: string;
-  category: string;
-  originalFileName: string;
-  extension: string;
-  contentType: string;
-  size: number;
-}
-
-export interface CustomerRequest {
+  customerId: number;
   companyName: string;
   representative: string;
   businessNumber: string;
@@ -138,9 +107,40 @@ export interface CustomerRequest {
   powerPlannerId: string;
   powerPlannerPassword: string;
   buildingType: BuildingType;
-  isTenantFactory: boolean;
-  januaryElectricUsage: number;
-  augustElectricUsage: number;
+  tenantCompanyList: TenantCompany[];
+  salesmanId: number | null;
+  salesmanName: string;
+  salesmanCommissionRate: number;
+  salesmanPhoneNumber: string;
+  salesmanEmail: string;
+  engineerId: number | null;
+  engineerName: string;
+  engineerPhoneNumber: string;
+  engineerEmail: string;
+  projectCost: number;
+  electricitySavingRate: number;
+  subsidy: number;
+  projectPeriod: string;
+  progressStatus: ProgressStatus;
+  customerFileList: FileListItem[];
+  tenantFactory: boolean;
+}
+
+export interface AddCustomerRequest {
+  companyName: string;
+  representative: string;
+  businessNumber: string;
+  businessType: string;
+  businessItem: string;
+  businessAddress: string;
+  managerName: string;
+  companyPhone: string;
+  email: string;
+  phoneNumber: string;
+  powerPlannerId: string;
+  powerPlannerPassword: string;
+  buildingType: BuildingType;
+  tenantCompanyList: TenantCompany[];
   salesmanId: number | null;
   engineerId: number | null;
   projectCost: number;
@@ -148,7 +148,53 @@ export interface CustomerRequest {
   subsidy: number;
   projectPeriod: string;
   progressStatus: ProgressStatus;
-  isDelete: boolean;
+  attachmentFileList: AttachmentFile[];
+  tenantFactory: boolean;
+}
+
+export interface FileListItem extends AttachmentFile {
+  fileId: number;
+  customerId: number;
+  fileUrl: string;
+}
+
+export interface TenantCompany {
+  tenantCompanyName: string;
+  januaryElectricUsage: number;
+  augustElectricUsage: number;
+}
+
+export interface AttachmentFile {
+  fileKey: string;
+  category: Category;
+  originalFileName: string;
+  extension: string;
+  contentType: string;
+  size: number;
+}
+
+export interface UpdateCustomerRequest {
+  companyName: string;
+  representative: string;
+  businessNumber: string;
+  businessType: string;
+  businessItem: string;
+  businessAddress: string;
+  managerName: string;
+  companyPhone: string;
+  email: string;
+  phoneNumber: string;
+  powerPlannerId: string;
+  powerPlannerPassword: string;
+  buildingType: BuildingType;
+  tenantFactory: boolean;
+  salesmanId: number | null;
+  engineerId: number | null;
+  projectCost: number;
+  electricitySavingRate: number;
+  subsidy: number;
+  projectPeriod: string;
+  progressStatus: ProgressStatus;
   newAttachmentFileList: AttachmentFile[];
   deleteAttachmentFileList: number[];
 }
