@@ -30,6 +30,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 컴포넌트 마운트 시 저장된 토큰이 있으면 사용자 상태 복원
   useEffect(() => {
+    import("./api").then(({ setTokenExpirationCallback }) => {
+      setTokenExpirationCallback(handleTokenExpiration);
+    });
+
     const token = localStorage.getItem("auth_token");
 
     if (token) {
@@ -117,11 +121,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // 토큰 만료 처리 함수 추가
+  const handleTokenExpiration = () => {
+    console.log("토큰이 만료되었습니다. 로그인 화면으로 이동합니다.");
+
+    // 사용자 상태 초기화
+    setUser(null);
+
+    // 로컬 스토리지에서 토큰 제거
+    localStorage.removeItem("auth_token");
+
+    // 로그인 페이지로 리다이렉트
+    window.location.href = "/login";
+  };
+
   const value = {
     user,
     isLoading,
     signIn,
     signOut,
+    handleTokenExpiration,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
