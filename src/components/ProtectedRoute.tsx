@@ -1,14 +1,19 @@
 import { useAuth } from "@/lib/auth";
 import { Loader2 } from "lucide-react";
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: ReactNode;
+  requiredRole?: string | string[];
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  requiredRole,
+}: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -23,6 +28,18 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // role 기반 접근 제어
+  if (requiredRole) {
+    const hasRequiredRole = Array.isArray(requiredRole)
+      ? requiredRole.includes(user.role)
+      : user.role === requiredRole;
+
+    if (!hasRequiredRole) {
+      // 권한이 없는 경우 대시보드로 리다이렉트
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;

@@ -26,6 +26,7 @@ interface FileUploadProps {
   files?: CustomerFile[];
   onFileUpload?: (file: File) => void;
   onFileDelete?: (fileId: number) => void;
+  readOnly?: boolean;
 }
 
 export function FileUpload({
@@ -36,6 +37,7 @@ export function FileUpload({
   files = [],
   onFileUpload,
   onFileDelete,
+  readOnly = false,
 }: FileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -171,31 +173,33 @@ export function FileUpload({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 파일 업로드 섹션 */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <input
-                id={`file-${documentType}`}
-                type="file"
-                onChange={handleFileSelect}
-                className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              />
-              <Button
-                onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
-                size="sm"
-                className="flex items-center space-x-2"
-              >
-                {isUploading ? (
-                  <>업로드 중...</>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4" />
-                    업로드
-                  </>
-                )}
-              </Button>
+          {!readOnly && (
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <input
+                  id={`file-${documentType}`}
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+                <Button
+                  onClick={handleUpload}
+                  disabled={!selectedFile || isUploading}
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  {isUploading ? (
+                    <>업로드 중...</>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4" />
+                      업로드
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* 첨부된 파일 목록 */}
           {files.length > 0 && (
@@ -234,15 +238,17 @@ export function FileUpload({
                           <Eye className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        onClick={() => handleFileDelete(file.fileId)}
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                        title="파일 삭제"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {!readOnly && (
+                        <Button
+                          onClick={() => handleFileDelete(file.fileId)}
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          title="파일 삭제"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

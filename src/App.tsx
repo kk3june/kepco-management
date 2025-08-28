@@ -23,8 +23,22 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/salesmans" element={<Salesmans />} />
-                    <Route path="/engineers" element={<Engineers />} />
+                    <Route
+                      path="/salesmans"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <Salesmans />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/engineers"
+                      element={
+                        <ProtectedRoute requiredRole="ADMIN">
+                          <Engineers />
+                        </ProtectedRoute>
+                      }
+                    />
                     <Route path="/customers" element={<Customers />} />
                     <Route path="/customers/:id" element={<CustomerDetail />} />
                   </Routes>

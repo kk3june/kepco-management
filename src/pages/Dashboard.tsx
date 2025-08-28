@@ -6,10 +6,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
+import { useAuth } from "@/lib/auth";
 import { Building2, HardHat, TrendingUp, Users } from "lucide-react";
 
 export function Dashboard() {
-  // 임시 데이터 (실제로는 API에서 가져올 예정)
+  const { user } = useAuth();
+
+  // 모든 사용자에게 동일한 통계 데이터 제공
   const stats = [
     {
       title: "총 수용가",
