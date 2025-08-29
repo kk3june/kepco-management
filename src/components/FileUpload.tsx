@@ -3,11 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/Dialog";
 import { CustomerFile } from "@/types/database";
 import {
+  AlertTriangle,
   Eye,
   FileArchive,
   FileImage,
@@ -43,6 +46,13 @@ export function FileUpload({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewFile, setPreviewFile] = useState<CustomerFile | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // 변전실도면은 최대 5개까지 첨부 가능, 나머지는 한 개씩만
+  const isMultipleAllowed = documentType === "ELECTRICAL_DIAGRAM";
+  const hasExistingFiles = files.length > 0;
+  const maxFilesReached = isMultipleAllowed && files.length >= 5;
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -77,7 +87,33 @@ export function FileUpload({
         return;
       }
 
+      // 변전실도면 최대 5개 제한 체크
+      if (isMultipleAllowed && maxFilesReached) {
+        alert(
+          "변전실 도면은 최대 5개까지 첨부 가능합니다. 기존 파일을 삭제한 후 새 파일을 첨부해주세요."
+        );
+        event.target.value = "";
+        return;
+      }
+
+      // 중복 첨부 체크 (변전실도면이 아닌 경우)
+      if (!isMultipleAllowed && hasExistingFiles) {
+        setPendingFile(file);
+        setIsDuplicateModalOpen(true);
+        event.target.value = "";
+        return;
+      }
+
       setSelectedFile(file);
+    }
+  };
+
+  const handleDuplicateConfirm = () => {
+    if (pendingFile) {
+      // 기존 파일 삭제는 상위 컴포넌트에서 처리하도록 안내만 표시
+      alert("기존 파일을 먼저 삭제한 후 새 파일을 첨부해주세요.");
+      setPendingFile(null);
+      setIsDuplicateModalOpen(false);
     }
   };
 
@@ -170,6 +206,17 @@ export function FileUpload({
         <CardHeader>
           <CardTitle className="text-lg">{title}</CardTitle>
           <p className="text-sm text-gray-600">{description}</p>
+          {isMultipleAllowed ? (
+            <div className="text-xs text-blue-600 flex items-center justify-between">
+              <span>변전실 도면은 최대 5개까지 첨부 가능합니다.</span>
+              <span className="text-gray-500">{files.length}/5</span>
+            </div>
+          ) : (
+            <p className="text-xs text-orange-600 flex items-center">
+              <AlertTriangle className="h-3 w-3 mr-1" />이 문서는 한 개의 파일만
+              첨부 가능합니다.
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           {/* 파일 업로드 섹션 */}
@@ -288,6 +335,33 @@ export function FileUpload({
           <div className="text-sm text-gray-500 text-center pt-4 border-t">
             파일 크기: {previewFile ? formatFileSize(previewFile.size) : ""}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* 중복 첨부 모달 */}
+      <Dialog
+        open={isDuplicateModalOpen}
+        onOpenChange={setIsDuplicateModalOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>중복 첨부 경고</DialogTitle>
+            <DialogDescription>
+              이 문서 유형은 여러 개의 파일을 첨부할 수 없습니다. 기존 파일을
+              삭제하고 새로 첨부하시겠습니까?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsDuplicateModalOpen(false)}
+            >
+              취소
+            </Button>
+            <Button variant="destructive" onClick={handleDuplicateConfirm}>
+              확인
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
