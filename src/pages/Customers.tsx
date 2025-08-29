@@ -179,13 +179,9 @@ export function Customers() {
   const getStatusText = (status: string) => {
     const statusMap = {
       REQUESTED: "의뢰",
-      FEASIBILITY: "타당성 검토",
-      SURVEY: "실사",
-      REPORT: "실사보고서",
-      CONTRACT: "계약",
-      CONSTRUCTION: "시공",
-      CONFIRMATION: "사업확인서",
-      SETTLEMENT: "수수료 정산",
+      IN_PROGRESS: "진행중",
+      COMPLETE: "완료",
+      REJECTED: "반려",
     };
     return statusMap[status as keyof typeof statusMap] || status;
   };
@@ -193,12 +189,15 @@ export function Customers() {
   const getStatusColor = (status: string) => {
     const colorMap = {
       REQUESTED: "bg-gray-100 text-gray-800",
-      FEASIBILITY: "bg-blue-100 text-blue-800",
-      SURVEY: "bg-yellow-100 text-yellow-800",
-      REPORT: "bg-orange-100 text-orange-800",
-      CONTRACT: "bg-green-100 text-green-800",
-      CONSTRUCTION: "bg-purple-100 text-purple-800",
-      CONFIRMATION: "bg-indigo-100 text-indigo-800",
+      IN_PROGRESS: "bg-blue-100 text-blue-800",
+      COMPLETE: "bg-green-100 text-green-800",
+      REJECTED: "bg-red-100 text-red-800",
+      FEASIBILITY: "bg-yellow-100 text-yellow-800",
+      SURVEY: "bg-orange-100 text-orange-800",
+      REPORT: "bg-purple-100 text-purple-800",
+      CONTRACT: "bg-indigo-100 text-indigo-800",
+      CONSTRUCTION: "bg-pink-100 text-pink-800",
+      CONFIRMATION: "bg-teal-100 text-teal-800",
       SETTLEMENT: "bg-emerald-100 text-emerald-800",
     };
     return (
@@ -278,8 +277,8 @@ export function Customers() {
                   <TableHead>업체명</TableHead>
                   <TableHead>대표자</TableHead>
                   <TableHead>건물형태</TableHead>
-                  <TableHead>담당 영업자 ID</TableHead>
-                  <TableHead>담당 기술사 ID</TableHead>
+                  <TableHead>담당 영업자</TableHead>
+                  <TableHead>담당 기술사</TableHead>
                   <TableHead>진행상황</TableHead>
                   <TableHead>연락처</TableHead>
                   <TableHead className="text-right">작업</TableHead>
