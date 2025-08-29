@@ -184,7 +184,7 @@ export function CustomerDetail() {
         businessType: editData.businessType || customer.businessType,
         businessItem: editData.businessItem || customer.businessItem,
         businessAddress: editData.businessAddress || customer.businessAddress,
-        managerName: editData.managerName || customer.managerName,
+        managerName: editData.managerName || customer.managerName || "",
         companyPhone: editData.companyPhone || customer.companyPhone,
         email: editData.email || customer.email,
         phoneNumber: editData.phoneNumber || customer.phoneNumber,
@@ -192,7 +192,7 @@ export function CustomerDetail() {
         powerPlannerPassword:
           editData.powerPlannerPassword || customer.powerPlannerPassword,
         buildingType: editData.buildingType || customer.buildingType,
-        tenantFactory: editData.tenantFactory ?? customer.tenantFactory,
+        isTenantFactory: editData.tenantFactory ?? customer.tenantFactory, // 필드명 수정
         newTenantCompanyList: [],
         deleteTenantCompanyList: [],
         salesmanId: customer.salesmanId,
@@ -203,9 +203,9 @@ export function CustomerDetail() {
         subsidy: editData.subsidy ?? customer.subsidy,
         projectPeriod: editData.projectPeriod || customer.projectPeriod,
         progressStatus: editData.progressStatus || customer.progressStatus,
-        isDelete: false, // 기본값으로 false 설정
-        newAttachmentFileList: [], // 현재는 빈 배열로 전송
-        deleteAttachmentFileList: [], // 현재는 빈 배열로 전송
+        isDelete: false,
+        newAttachmentFileList: [],
+        deleteAttachmentFileList: [],
       };
 
       const response = await apiClient.patch(
@@ -300,7 +300,7 @@ export function CustomerDetail() {
         powerPlannerId: customer.powerPlannerId,
         powerPlannerPassword: customer.powerPlannerPassword,
         buildingType: customer.buildingType,
-        tenantFactory: customer.tenantFactory,
+        isTenantFactory: customer.tenantFactory, // 필드명 수정
         newTenantCompanyList: [],
         deleteTenantCompanyList: [],
         salesmanId: customer.salesmanId,
@@ -342,10 +342,32 @@ export function CustomerDetail() {
     try {
       // Customer update API를 통해 파일 삭제 정보 추가
       const requestData = {
-        ...customer,
+        companyName: customer.companyName,
+        representative: customer.representative,
+        businessNumber: customer.businessNumber,
+        businessType: customer.businessType,
+        businessItem: customer.businessItem,
+        businessAddress: customer.businessAddress,
+        managerName: customer.managerName || "",
+        companyPhone: customer.companyPhone,
+        email: customer.email,
+        phoneNumber: customer.phoneNumber,
+        powerPlannerId: customer.powerPlannerId,
+        powerPlannerPassword: customer.powerPlannerPassword,
+        buildingType: customer.buildingType,
+        isTenantFactory: customer.tenantFactory, // 필드명 수정
+        newTenantCompanyList: [],
+        deleteTenantCompanyList: [],
+        salesmanId: customer.salesmanId,
+        engineerId: customer.engineerId,
+        projectCost: customer.projectCost,
+        electricitySavingRate: customer.electricitySavingRate,
+        subsidy: customer.subsidy,
+        projectPeriod: customer.projectPeriod,
+        progressStatus: customer.progressStatus,
         isDelete: false,
         newAttachmentFileList: [],
-        deleteAttachmentFileList: [fileId],
+        deleteAttachmentFileList: [fileId], // fileId 배열
       };
 
       const response = await apiClient.patch(
@@ -835,7 +857,29 @@ export function CustomerDetail() {
                       if (!customer) return;
                       try {
                         const requestData = {
-                          ...customer,
+                          companyName: customer.companyName,
+                          representative: customer.representative,
+                          businessNumber: customer.businessNumber,
+                          businessType: customer.businessType,
+                          businessItem: customer.businessItem,
+                          businessAddress: customer.businessAddress,
+                          managerName: customer.managerName || "",
+                          companyPhone: customer.companyPhone,
+                          email: customer.email,
+                          phoneNumber: customer.phoneNumber,
+                          powerPlannerId: customer.powerPlannerId,
+                          powerPlannerPassword: customer.powerPlannerPassword,
+                          buildingType: customer.buildingType,
+                          isTenantFactory: customer.tenantFactory, // 필드명 수정
+                          newTenantCompanyList: [],
+                          deleteTenantCompanyList: [],
+                          salesmanId: customer.salesmanId,
+                          engineerId: customer.engineerId,
+                          projectCost: customer.projectCost,
+                          electricitySavingRate: customer.electricitySavingRate,
+                          subsidy: customer.subsidy,
+                          projectPeriod: customer.projectPeriod,
+                          progressStatus: customer.progressStatus,
                           isDelete: false,
                           newAttachmentFileList: [],
                           deleteAttachmentFileList: [],
@@ -907,7 +951,29 @@ export function CustomerDetail() {
                       if (!customer) return;
                       try {
                         const requestData = {
-                          ...customer,
+                          companyName: customer.companyName,
+                          representative: customer.representative,
+                          businessNumber: customer.businessNumber,
+                          businessType: customer.businessType,
+                          businessItem: customer.businessItem,
+                          businessAddress: customer.businessAddress,
+                          managerName: customer.managerName || "",
+                          companyPhone: customer.companyPhone,
+                          email: customer.email,
+                          phoneNumber: customer.phoneNumber,
+                          powerPlannerId: customer.powerPlannerId,
+                          powerPlannerPassword: customer.powerPlannerPassword,
+                          buildingType: customer.buildingType,
+                          isTenantFactory: customer.tenantFactory, // 필드명 수정
+                          newTenantCompanyList: [],
+                          deleteTenantCompanyList: [],
+                          salesmanId: customer.salesmanId,
+                          engineerId: customer.engineerId,
+                          projectCost: customer.projectCost,
+                          electricitySavingRate: customer.electricitySavingRate,
+                          subsidy: customer.subsidy,
+                          projectPeriod: customer.projectPeriod,
+                          progressStatus: customer.progressStatus,
                           isDelete: false,
                           newAttachmentFileList: [],
                           deleteAttachmentFileList: [],
