@@ -84,24 +84,26 @@ export function Salesmans() {
   const handleFormSubmit = async (data: SalesmanRequest) => {
     try {
       if (editingSalesman) {
-        // 수정 - 기존 Salesman 타입으로 변환
+        // 수정 - updateSalesman API 구조에 맞춰 변환
         const updateData = {
-          name: data.name,
-          phoneNumber: data.phone,
-          email: data.email,
-          address: data.address,
+          username: editingSalesman.userId, // 기존 userId 사용
+          password: editingSalesman.userPw, // 기존 비밀번호 유지
+          salesmanName: data.salesmanName,
+          salesmanPhone: data.salesmanPhone,
+          salesmanEmail: data.salesmanEmail,
+          salesmanAddress: data.salesmanAddress,
           commissionRate: data.commissionRate,
           settlementMethod: data.settlementMethod,
           bankName: data.bankName,
           bankAccount: data.bankAccount,
-          businessNumber: data.businessNumber || "",
-          business_type: data.businessType || "",
-          business_category: data.businessItem || "",
-          representative: data.representative || "",
-          business_address: data.businessAddress || "",
+          businessNumber: data.businessNumber,
+          representative: data.representative,
+          businessItem: data.businessItem,
+          businessType: data.businessType,
+          businessAddress: data.businessAddress,
         };
 
-        const response = await apiClient.patch(
+        const response = await apiClient.put(
           API_ENDPOINTS.SALES_REPS.UPDATE(editingSalesman.id.toString()),
           updateData
         );
