@@ -420,6 +420,59 @@ export function CustomerDetail() {
     );
   };
 
+  // 진행 상태 업데이트 핸들러
+  const handleProgressStatusUpdate = async () => {
+    if (!customer) return;
+
+    try {
+      const requestData = {
+        companyName: customer.companyName,
+        representative: customer.representative,
+        businessNumber: customer.businessNumber,
+        businessType: customer.businessType,
+        businessItem: customer.businessItem,
+        businessAddress: customer.businessAddress,
+        managerName: customer.managerName || "",
+        companyPhone: customer.companyPhone,
+        email: customer.email,
+        phoneNumber: customer.phoneNumber,
+        powerPlannerId: customer.powerPlannerId,
+        powerPlannerPassword: customer.powerPlannerPassword,
+        buildingType: customer.buildingType,
+        isTenantFactory: customer.tenantFactory, // 필드명 수정
+        newTenantCompanyList: [],
+        deleteTenantCompanyList: [],
+        salesmanId: customer.salesmanId,
+        engineerId: customer.engineerId,
+        projectCost: customer.projectCost,
+        electricitySavingRate: customer.electricitySavingRate,
+        subsidy: customer.subsidy,
+        projectPeriod: customer.projectPeriod,
+        progressStatus: customer.progressStatus,
+        isDelete: false,
+        newAttachmentFileList: [],
+        deleteAttachmentFileList: [],
+      };
+
+      const response = await apiClient.patch(
+        API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
+        requestData
+      );
+
+      if (response.error) {
+        console.error("진행 상태 업데이트 실패:", response.error);
+        alert("진행 상태 업데이트에 실패했습니다.");
+        return;
+      }
+
+      alert("진행 상태가 변경되었습니다.");
+      await fetchCustomer(customer.customerId.toString());
+    } catch (error) {
+      console.error("진행 상태 업데이트 중 오류:", error);
+      alert("진행 상태 업데이트 중 오류가 발생했습니다.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">로딩중...</div>
@@ -1040,14 +1093,48 @@ export function CustomerDetail() {
       {/* 첨부 문서 섹션 - 모든 사용자가 볼 수 있음 */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
-            첨부 문서 관리
-          </CardTitle>
-          <CardDescription>
-            수용가 관련 문서를 업로드하고 관리할 수 있습니다.
-            {!canManageFiles() && " (읽기 전용)"}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center">
+                <FileText className="mr-2 h-5 w-5" />
+                첨부 문서 관리
+              </CardTitle>
+              <CardDescription>
+                수용가 관련 문서를 업로드하고 관리할 수 있습니다.
+                {!canManageFiles() && " (읽기 전용)"}
+              </CardDescription>
+            </div>
+
+            {/* 진행 상태 수정 (권한이 있는 사용자만) */}
+            {canManageFiles() && (
+              <div className="flex items-center space-x-2">
+                <select
+                  value={customer.progressStatus || "REQUESTED"}
+                  onChange={(e) => {
+                    if (customer) {
+                      setCustomer({
+                        ...customer,
+                        progressStatus: e.target.value as any,
+                      });
+                    }
+                  }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 hover:border-ring transition-colors"
+                >
+                  <option value="REQUESTED">의뢰</option>
+                  <option value="IN_PROGRESS">진행중</option>
+                  <option value="COMPLETE">완료</option>
+                  <option value="REJECTED">반려</option>
+                </select>
+                <Button
+                  onClick={handleProgressStatusUpdate}
+                  size="sm"
+                  variant="outline"
+                >
+                  적용
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
