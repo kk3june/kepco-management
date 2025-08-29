@@ -46,10 +46,10 @@ const salesmanSchema = z.object({
       "아이디는 영문 소문자, 숫자, 특수문자(_-.)만 사용 가능합니다"
     ),
   password: z.string().min(1, "비밀번호를 입력해주세요"),
-  name: z.string().min(1, "이름을 입력해주세요"),
-  phone: z.string().min(1, "연락처를 입력해주세요"),
-  email: z.string().email("올바른 이메일을 입력해주세요"),
-  address: z.string().min(1, "주소를 입력해주세요"),
+  salesmanName: z.string().min(1, "이름을 입력해주세요"),
+  salesmanPhone: z.string().min(1, "연락처를 입력해주세요"),
+  salesmanEmail: z.string().email("올바른 이메일을 입력해주세요"),
+  salesmanAddress: z.string().min(1, "주소를 입력해주세요"),
   commissionRate: z.number().min(0, "수수료율을 입력해주세요"),
   settlementMethod: z.enum(["INVOICE", "WITHHOLDING_TAX"]),
   bankName: z.string().min(1, "은행명을 입력해주세요"),
@@ -81,10 +81,10 @@ export function SalesmanForm({
     defaultValues: {
       username: "",
       password: "",
-      name: "",
-      phone: "",
-      email: "",
-      address: "",
+      salesmanName: "",
+      salesmanPhone: "",
+      salesmanEmail: "",
+      salesmanAddress: "",
       commissionRate: 0,
       settlementMethod: "INVOICE",
       bankName: "",
@@ -102,10 +102,10 @@ export function SalesmanForm({
       form.reset({
         username: salesman.userId || "",
         password: salesman.userPw || "",
-        name: salesman.name || "",
-        phone: salesman.phoneNumber || "", // phoneNumber를 phone으로 매핑
-        email: salesman.email || "",
-        address: salesman.address || "",
+        salesmanName: salesman.name || "",
+        salesmanPhone: salesman.phoneNumber || "", // phoneNumber를 salesmanPhone으로 매핑
+        salesmanEmail: salesman.email || "",
+        salesmanAddress: salesman.address || "",
         commissionRate: salesman.commissionRate,
         settlementMethod: salesman.settlementMethod,
         bankName: salesman.bankName || "",
@@ -120,10 +120,10 @@ export function SalesmanForm({
       form.reset({
         username: "",
         password: "",
-        name: "",
-        phone: "",
-        email: "",
-        address: "",
+        salesmanName: "",
+        salesmanPhone: "",
+        salesmanEmail: "",
+        salesmanAddress: "",
         commissionRate: 0,
         settlementMethod: "INVOICE",
         bankName: "",
@@ -142,19 +142,19 @@ export function SalesmanForm({
     const transformedData: SalesmanRequest = {
       username: data.username,
       password: data.password,
-      name: data.name,
-      phone: data.phone,
-      email: data.email,
-      address: data.address,
+      salesmanName: data.salesmanName,
+      salesmanPhone: data.salesmanPhone,
+      salesmanEmail: data.salesmanEmail,
+      salesmanAddress: data.salesmanAddress,
       commissionRate: data.commissionRate,
       settlementMethod: data.settlementMethod,
       bankName: data.bankName,
       bankAccount: data.bankAccount,
-      businessNumber: data.businessNumber,
-      representative: data.representative,
-      businessItem: data.businessItem,
-      businessType: data.businessType,
-      businessAddress: data.businessAddress,
+      businessNumber: data.businessNumber || "",
+      representative: data.representative || "",
+      businessItem: data.businessItem || "",
+      businessType: data.businessType || "",
+      businessAddress: data.businessAddress || "",
     };
 
     onSubmit(transformedData);
@@ -219,7 +219,7 @@ export function SalesmanForm({
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="salesmanName"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>이름 *</FormLabel>
@@ -233,7 +233,7 @@ export function SalesmanForm({
 
                 <FormField
                   control={form.control}
-                  name="phone"
+                  name="salesmanPhone"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>연락처 *</FormLabel>
@@ -257,7 +257,7 @@ export function SalesmanForm({
 
               <FormField
                 control={form.control}
-                name="email"
+                name="salesmanEmail"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>이메일 *</FormLabel>
@@ -271,7 +271,7 @@ export function SalesmanForm({
 
               <FormField
                 control={form.control}
-                name="address"
+                name="salesmanAddress"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>주소 *</FormLabel>
