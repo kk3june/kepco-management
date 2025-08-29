@@ -252,6 +252,28 @@ export function CustomerDetail() {
     if (!customer) return;
 
     try {
+      // 변전실도면이 아닌 경우 기존 파일이 있으면 사용자에게 안내
+      if (documentType !== "ELECTRICAL_DIAGRAM") {
+        const existingFiles = getFilesByDocumentType(documentType);
+        if (existingFiles.length > 0) {
+          alert(
+            "이 문서 유형은 한 개의 파일만 첨부 가능합니다. 기존 파일을 먼저 삭제한 후 새 파일을 첨부해주세요."
+          );
+          return;
+        }
+      }
+
+      // 변전실도면 최대 5개 제한 체크
+      if (documentType === "ELECTRICAL_DIAGRAM") {
+        const existingFiles = getFilesByDocumentType(documentType);
+        if (existingFiles.length >= 5) {
+          alert(
+            "변전실 도면은 최대 5개까지 첨부 가능합니다. 기존 파일을 삭제한 후 새 파일을 첨부해주세요."
+          );
+          return;
+        }
+      }
+
       // 1. 업로드 URL 요청
       const uploadUrlResponse = await getUploadUrls([
         {
@@ -300,7 +322,7 @@ export function CustomerDetail() {
         powerPlannerId: customer.powerPlannerId,
         powerPlannerPassword: customer.powerPlannerPassword,
         buildingType: customer.buildingType,
-        isTenantFactory: customer.tenantFactory, // 필드명 수정
+        isTenantFactory: customer.tenantFactory,
         newTenantCompanyList: [],
         deleteTenantCompanyList: [],
         salesmanId: customer.salesmanId,
@@ -716,7 +738,7 @@ export function CustomerDetail() {
                   <p className="text-sm font-medium text-gray-500">패스워드</p>
                   {isEditing ? (
                     <input
-                      type="password"
+                      type="text"
                       value={editData.powerPlannerPassword || ""}
                       onChange={(e) =>
                         handleInputChange(
@@ -727,7 +749,9 @@ export function CustomerDetail() {
                       className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
                     />
                   ) : (
-                    <p className="text-sm">••••••••</p>
+                    <p className="text-sm">
+                      {customer.powerPlannerPassword || "-"}
+                    </p>
                   )}
                 </div>
               </div>
