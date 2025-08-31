@@ -159,6 +159,13 @@ export interface FileListItem extends AttachmentFile {
 }
 
 export interface TenantCompany {
+  customerTenantCompanyId: number;
+  tenantCompanyName: string;
+  januaryElectricUsage: number;
+  augustElectricUsage: number;
+}
+
+export interface UpdateTenantCompany {
   tenantCompanyName: string;
   januaryElectricUsage: number;
   augustElectricUsage: number;
@@ -187,8 +194,8 @@ export interface UpdateCustomerRequest {
   powerPlannerId: string;
   powerPlannerPassword: string;
   buildingType: BuildingType;
-  isTenantFactory: true;
-  newTenantCompanyList: TenantCompany[];
+  isTenantFactory: boolean;
+  newTenantCompanyList: UpdateTenantCompany[];
   deleteTenantCompanyList: number[];
   salesmanId: number | null;
   engineerId: number | null;
