@@ -24,7 +24,13 @@ import {
 } from "@/components/ui/Select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/Tabs";
 import { Textarea } from "@/components/ui/Textarea";
-import { API_ENDPOINTS, apiClient, ApiResponse } from "@/lib/api";
+import {
+  API_ENDPOINTS,
+  apiClient,
+  ApiResponse,
+  getUploadUrls,
+  uploadToS3,
+} from "@/lib/api";
 import { toast } from "@/lib/toast";
 import {
   formatBusinessNumber,
@@ -79,8 +85,6 @@ const customerSchema = z.object({
     "HOTEL",
     "OTHER",
   ]),
-  januaryElectricUsage: z.number().min(0, "1월 전기사용량을 입력해주세요"),
-  augustElectricUsage: z.number().min(0, "8월 전기사용량을 입력해주세요"),
   salesmanId: z.number().nullable().optional(),
   engineerId: z.number().nullable().optional(),
   projectCost: z.number().min(0, "사업비용을 입력해주세요"),
@@ -224,7 +228,7 @@ export function CustomerForm({
   };
 
   const handleFormSubmit = form.handleSubmit(
-    (data) => {
+    async (data) => {
       console.log("✅ Form submitted successfully with data:", data);
 
       // 필수 파일 검증
@@ -238,19 +242,8 @@ export function CustomerForm({
         return;
       }
 
-      // 공장인 경우 전력사용량 검증
+      // 공장이면서 단독사용이 아닌 경우 임차업체 정보 검증
       if (data.buildingType === "FACTORY" && !data.tenantFactory) {
-        if (data.tenantCompanyList.length === 0) {
-          toast.error(
-            "입력 오류",
-            "공장 단독 사용인 경우 1월과 8월 전기사용량을 입력해주세요."
-          );
-          return;
-        }
-      }
-
-      // 공장이면서 임차업체가 있는 경우 임차업체 정보 검증
-      if (data.buildingType === "FACTORY" && data.tenantFactory) {
         const hasValidTenant = tenantCompanies.some(
           (company) =>
             company.name.trim() &&
@@ -263,47 +256,74 @@ export function CustomerForm({
       }
 
       // 임차 업체 정보 처리
-      if (data.tenantFactory && data.buildingType === "FACTORY") {
-        // 임차 업체들의 전력 사용량을 합산
-
-        data.tenantCompanyList = tenantCompanies.map((company) => ({
-          tenantCompanyName: company.name,
-          januaryElectricUsage: parseInt(company.jan),
-          augustElectricUsage: parseInt(company.aug),
-        }));
+      if (data.buildingType === "FACTORY" && !data.tenantFactory) {
+        // 공장이 단독사용이 아닌 경우 임차업체 정보를 tenantCompanyList에 추가
+        data.tenantCompanyList = tenantCompanies
+          .filter(
+            (company) =>
+              company.name.trim() &&
+              (parseInt(company.jan) > 0 || parseInt(company.aug) > 0)
+          )
+          .map((company) => ({
+            tenantCompanyName: company.name,
+            januaryElectricUsage: parseInt(company.jan) || 0,
+            augustElectricUsage: parseInt(company.aug) || 0,
+          }));
+      } else {
+        // 공장이 단독사용이거나 공장이 아닌 경우 빈 배열로 설정
+        data.tenantCompanyList = [];
       }
 
-      // 첨부파일 목록 생성
-      const attachmentFileList: AttachmentFile[] = [];
+      try {
+        // 첨부파일 목록 생성
+        const attachmentFileList: AttachmentFile[] = [];
 
-      // 사업자등록증
-      if (businessLicenseFile) {
-        attachmentFileList.push(
-          createAttachmentFile(businessLicenseFile, "BUSINESS_LICENSE")
-        );
+        // 사업자등록증
+        if (businessLicenseFile) {
+          const businessLicenseAttachment = await createAttachmentFile(
+            businessLicenseFile,
+            "BUSINESS_LICENSE"
+          );
+          if (businessLicenseAttachment) {
+            attachmentFileList.push(businessLicenseAttachment);
+          }
+        }
+
+        // 변전실도면
+        for (const file of electricalDiagramFiles) {
+          const electricalDiagramAttachment = await createAttachmentFile(
+            file,
+            "ELECTRICAL_DIAGRAM"
+          );
+          if (electricalDiagramAttachment) {
+            attachmentFileList.push(electricalDiagramAttachment);
+          }
+        }
+
+        // 고메타 자료 (공장 제외)
+        if (data.buildingType !== "FACTORY" && hasGometaData && gometaFile) {
+          const gometaAttachment = await createAttachmentFile(
+            gometaFile,
+            "GOMETA_EXCEL"
+          );
+          if (gometaAttachment) {
+            attachmentFileList.push(gometaAttachment);
+          }
+        }
+
+        const normalizedData: AddCustomerRequest = {
+          ...data,
+          salesmanId: data.salesmanId ?? null,
+          engineerId: data.engineerId ?? null,
+          attachmentFileList,
+        };
+
+        console.log("📎 Final attachmentFileList:", attachmentFileList);
+        onSubmit(normalizedData);
+      } catch (error) {
+        console.error("파일 업로드 중 오류:", error);
+        toast.error("파일 업로드 오류", "파일 업로드 중 오류가 발생했습니다.");
       }
-
-      // 변전실도면
-      electricalDiagramFiles.forEach((file) => {
-        attachmentFileList.push(
-          createAttachmentFile(file, "ELECTRICAL_DIAGRAM")
-        );
-      });
-
-      // 고메타 자료 (공장 제외)
-      if (data.buildingType !== "FACTORY" && hasGometaData && gometaFile) {
-        attachmentFileList.push(
-          createAttachmentFile(gometaFile, "GOMETA_EXCEL")
-        );
-      }
-
-      const normalizedData: AddCustomerRequest = {
-        ...data,
-        salesmanId: data.salesmanId ?? null,
-        engineerId: data.engineerId ?? null,
-        attachmentFileList,
-      };
-      onSubmit(normalizedData);
     },
     (errors) => {
       console.log("❌ Form validation errors:", errors);
@@ -401,18 +421,52 @@ export function CustomerForm({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const createAttachmentFile = (
+  const createAttachmentFile = async (
     file: File,
     category: "BUSINESS_LICENSE" | "ELECTRICAL_DIAGRAM" | "GOMETA_EXCEL"
-  ): AttachmentFile => {
-    return {
-      fileKey: `file_${Date.now()}_${Math.random()}`,
-      category,
-      originalFileName: file.name,
-      extension: file.name.split(".").pop() || "",
-      contentType: file.type,
-      size: file.size,
-    };
+  ): Promise<AttachmentFile | null> => {
+    try {
+      // 1. 업로드 URL 요청
+      const uploadUrlResult = await getUploadUrls([
+        {
+          category,
+          extension: file.name.split(".").pop() || "",
+          contentType: file.type,
+        },
+      ]);
+
+      if (!uploadUrlResult.success || !uploadUrlResult.uploadUrls?.[0]) {
+        throw new Error("업로드 URL을 가져오는데 실패했습니다.");
+      }
+
+      const { fileKey, uploadUrl } = uploadUrlResult.uploadUrls[0];
+
+      // 2. S3에 파일 업로드
+      const uploadResult = await uploadToS3(file, uploadUrl);
+      if (!uploadResult.success) {
+        throw new Error("S3 파일 업로드에 실패했습니다.");
+      }
+
+      // 3. API에서 요구하는 AttachmentFile 구조에 맞게 생성
+      const attachmentFile: AttachmentFile = {
+        fileKey,
+        category,
+        originalFileName: file.name,
+        extension: file.name.split(".").pop() || "",
+        contentType: file.type,
+        size: file.size,
+      };
+
+      return attachmentFile;
+    } catch (error) {
+      console.error("파일 처리 중 오류:", error);
+
+      toast.error(
+        "파일 업로드 오류",
+        `${file.name} 파일 업로드에 실패했습니다.`
+      );
+      return null;
+    }
   };
 
   return (
@@ -805,7 +859,7 @@ export function CustomerForm({
                             variant="outline"
                             size="sm"
                           >
-                            업체 추가
+                            임차업체 추가
                           </Button>
                         )}
                       </div>
@@ -814,9 +868,9 @@ export function CustomerForm({
                         <div className="space-y-2">
                           {/* 테이블 헤더 */}
                           <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
-                            <div>임차 업체명</div>
-                            <div>1월 전기사용량 (kWh)</div>
-                            <div>8월 전기사용량 (kWh)</div>
+                            <div>임차업체명 *</div>
+                            <div>1월 전기사용량 (kWh) *</div>
+                            <div>8월 전기사용량 (kWh) *</div>
                             <div></div>
                           </div>
 
@@ -835,7 +889,7 @@ export function CustomerForm({
                                     e.target.value
                                   )
                                 }
-                                placeholder="업체명"
+                                placeholder="임차업체명"
                                 className="h-9"
                               />
                               <Input
