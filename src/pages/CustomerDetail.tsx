@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { Checkbox } from "@/components/ui/Checkbox";
-import { Input } from "@/components/ui/Input";
 import { Label } from "@/components/ui/Label";
 import {
   API_ENDPOINTS,
@@ -27,6 +26,8 @@ import {
   FileUploadRequest,
   Salesman,
   SalesmanResponse,
+  TenantCompany,
+  UpdateCustomerRequest,
 } from "@/types/database";
 import { ArrowLeft, Building2, FileText, MapPin } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -41,7 +42,37 @@ export function CustomerDetail() {
 
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<Customer>>({});
+  const [editData, setEditData] = useState<UpdateCustomerRequest>({
+    companyName: "",
+    representative: "",
+    businessNumber: "",
+    businessType: "",
+    businessItem: "",
+    businessAddress: "",
+    managerName: "",
+    companyPhone: "",
+    email: "",
+    phoneNumber: "",
+    powerPlannerId: "",
+    powerPlannerPassword: "",
+    buildingType: "FACTORY",
+    newTenantCompanyList: [],
+    deleteTenantCompanyList: [],
+    salesmanId: null,
+    engineerId: null,
+    projectCost: 0,
+    electricitySavingRate: 0,
+    subsidy: 0,
+    projectPeriod: "",
+    progressStatus: "REQUESTED",
+    isDelete: false,
+    newAttachmentFileList: [],
+    deleteAttachmentFileList: [],
+    isTenantFactory: false,
+  });
+  const [tenantCompanyList, setTenantCompanyList] = useState<TenantCompany[]>(
+    []
+  );
   const [salesmans, setSalesmans] = useState<Salesman[]>([]);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
 
@@ -108,6 +139,7 @@ export function CustomerDetail() {
           ? { ...response.data.data, customerId: parseInt(customerId) }
           : null
       );
+      setTenantCompanyList(response.data?.data?.tenantCompanyList || []);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -143,21 +175,63 @@ export function CustomerDetail() {
 
   const startEditing = () => {
     if (customer) {
-      setEditData(customer);
+      setEditData({
+        companyName: customer.companyName,
+        representative: customer.representative,
+        businessNumber: customer.businessNumber,
+        businessType: customer.businessType,
+        businessItem: customer.businessItem,
+        businessAddress: customer.businessAddress,
+        managerName: customer.managerName,
+        companyPhone: customer.companyPhone,
+        email: customer.email,
+        phoneNumber: customer.phoneNumber,
+        powerPlannerId: customer.powerPlannerId,
+        powerPlannerPassword: customer.powerPlannerPassword,
+        buildingType: customer.buildingType,
+        newTenantCompanyList: [],
+        deleteTenantCompanyList: [],
+        salesmanId: customer.salesmanId,
+        engineerId: customer.engineerId,
+        projectCost: customer.projectCost,
+        electricitySavingRate: customer.electricitySavingRate,
+        subsidy: customer.subsidy,
+        projectPeriod: customer.projectPeriod,
+        progressStatus: customer.progressStatus,
+        isDelete: false,
+        newAttachmentFileList: customer.customerFileList,
+        deleteAttachmentFileList: [],
+        isTenantFactory: customer.tenantFactory,
+      });
       setIsEditing(true);
+      setTenantCompanyList(customer.tenantCompanyList);
     }
   };
 
   const cancelEditing = () => {
-    setEditData({});
     setIsEditing(false);
   };
 
   const handleInputChange = (
-    field: keyof Customer,
+    field: keyof UpdateCustomerRequest,
     value: string | number | boolean
   ) => {
     setEditData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const removeTenantCompany = (customerTenantCompanyId: number) => {
+    setTenantCompanyList((prev) =>
+      prev.filter(
+        (company) => company.customerTenantCompanyId !== customerTenantCompanyId
+      )
+    );
+    setEditData((prev) => ({
+      ...prev,
+      deleteTenantCompanyList: [
+        ...prev.deleteTenantCompanyList,
+        customerTenantCompanyId,
+      ],
+    }));
   };
 
   const handleSave = async () => {
@@ -179,41 +253,9 @@ export function CustomerDetail() {
         }
       }
 
-      // API 요청에 필요한 데이터를 API 스펙에 맞게 준비
-      const requestData = {
-        companyName: editData.companyName || customer.companyName,
-        representative: editData.representative || customer.representative,
-        businessNumber: editData.businessNumber || customer.businessNumber,
-        businessType: editData.businessType || customer.businessType,
-        businessItem: editData.businessItem || customer.businessItem,
-        businessAddress: editData.businessAddress || customer.businessAddress,
-        managerName: editData.managerName || customer.managerName || "",
-        companyPhone: editData.companyPhone || customer.companyPhone,
-        email: editData.email || customer.email,
-        phoneNumber: editData.phoneNumber || customer.phoneNumber,
-        powerPlannerId: editData.powerPlannerId || customer.powerPlannerId,
-        powerPlannerPassword:
-          editData.powerPlannerPassword || customer.powerPlannerPassword,
-        buildingType: editData.buildingType || customer.buildingType,
-        isTenantFactory: editData.tenantFactory ?? customer.tenantFactory, // 필드명 수정
-        newTenantCompanyList: [],
-        deleteTenantCompanyList: [],
-        salesmanId: customer.salesmanId,
-        engineerId: customer.engineerId,
-        projectCost: editData.projectCost ?? customer.projectCost,
-        electricitySavingRate:
-          editData.electricitySavingRate ?? customer.electricitySavingRate,
-        subsidy: editData.subsidy ?? customer.subsidy,
-        projectPeriod: editData.projectPeriod || customer.projectPeriod,
-        progressStatus: editData.progressStatus || customer.progressStatus,
-        isDelete: false,
-        newAttachmentFileList: [],
-        deleteAttachmentFileList: [],
-      };
-
       const response = await apiClient.patch(
         API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
-        requestData
+        editData
       );
 
       if (response.error) {
@@ -225,7 +267,7 @@ export function CustomerDetail() {
       // 성공 시 고객 정보 새로고침
       await fetchCustomer(customer.customerId.toString());
       setIsEditing(false);
-      setEditData({});
+      // setEditData({});
       alert("수정이 완료되었습니다.");
     } catch (error) {
       console.error("Error:", error);
@@ -507,6 +549,9 @@ export function CustomerDetail() {
     return descriptions[documentType] || "문서를 업로드해주세요.";
   }
 
+  console.log("customer", customer);
+  console.log("editData", editData);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -665,37 +710,32 @@ export function CustomerDetail() {
           <div className="space-y-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                {isEditing ? (
-                  <Checkbox
-                    id="singleUse"
-                    checked={editData.tenantFactory ?? customer.tenantFactory}
-                    onCheckedChange={(checked) =>
-                      handleInputChange("tenantFactory", !!checked)
-                    }
-                  />
-                ) : (
-                  <div className="w-4 h-4 rounded border-2 border-gray-300 flex items-center justify-center">
-                    {customer.tenantFactory && (
-                      <div className="w-2 h-2 bg-blue-600 rounded-sm" />
-                    )}
-                  </div>
+                {isEditing && (
+                  <>
+                    <Checkbox
+                      id="singleUse"
+                      checked={editData.isTenantFactory}
+                      onCheckedChange={(checked) =>
+                        handleInputChange("isTenantFactory", !!checked)
+                      }
+                    />
+                    <Label htmlFor="singleUse">공장 단독 사용</Label>
+                  </>
                 )}
-                <Label htmlFor="singleUse">공장 단독 사용</Label>
               </div>
-              {isEditing &&
-                !(editData.tenantFactory ?? customer.tenantFactory) && (
-                  <Button
-                    type="button"
-                    onClick={() => handleInputChange("tenantFactory", true)}
-                    variant="outline"
-                    size="sm"
-                  >
-                    임차업체 추가
-                  </Button>
-                )}
+              {isEditing && (
+                <Button
+                  type="button"
+                  onClick={() => handleInputChange("isTenantFactory", true)}
+                  variant="outline"
+                  size="sm"
+                >
+                  임차업체 추가
+                </Button>
+              )}
             </div>
 
-            {!(editData.tenantFactory ?? customer.tenantFactory) && (
+            {tenantCompanyList && (
               <div className="space-y-2">
                 {/* 테이블 헤더 */}
                 <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
@@ -706,74 +746,37 @@ export function CustomerDetail() {
                 </div>
 
                 {/* 테이블 행들 */}
-                {(editData.tenantCompanyList ?? customer.tenantCompanyList).map(
-                  (company, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-4 gap-4 items-center"
-                    >
-                      {isEditing ? (
-                        <>
-                          <Input
-                            value={company.tenantCompanyName}
-                            onChange={(e) =>
-                              console.log(index, "name", e.target.value)
-                            }
-                            placeholder="임차업체명"
-                            className="h-9"
-                          />
-                          <Input
-                            value={company.januaryElectricUsage}
-                            onChange={(e) =>
-                              console.log(index, "jan", e.target.value)
-                            }
-                            placeholder="0"
-                            type="number"
-                            className="h-9"
-                          />
-                          <Input
-                            value={company.augustElectricUsage}
-                            onChange={(e) =>
-                              console.log(index, "aug", e.target.value)
-                            }
-                            placeholder="0"
-                            type="number"
-                            className="h-9"
-                          />
-                          <div className="flex justify-center">
-                            {(
-                              editData.tenantCompanyList ??
-                              customer.tenantCompanyList
-                            ).length > 1 && (
-                              <Button
-                                type="button"
-                                onClick={(e) => console.log(e)}
-                                variant="destructive"
-                                size="sm"
-                                className="h-9 px-3"
-                              >
-                                삭제
-                              </Button>
-                            )}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="text-sm py-2">
-                            {company.tenantCompanyName}
-                          </div>
-                          <div className="text-sm py-2">
-                            {company.januaryElectricUsage}
-                          </div>
-                          <div className="text-sm py-2">
-                            {company.augustElectricUsage}
-                          </div>
-                          <div></div>
-                        </>
+                {tenantCompanyList.map((company, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-4 gap-4 items-center"
+                  >
+                    <>
+                      <div className="text-sm py-2">
+                        {company.tenantCompanyName}
+                      </div>
+                      <div className="text-sm py-2">
+                        {company.januaryElectricUsage}
+                      </div>
+                      <div className="text-sm py-2">
+                        {company.augustElectricUsage}
+                      </div>
+                      {isEditing && canManageFiles() && (
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            removeTenantCompany(company.customerTenantCompanyId)
+                          }
+                          variant="destructive"
+                          size="sm"
+                          className="h-9 px-3"
+                        >
+                          삭제
+                        </Button>
                       )}
-                    </div>
-                  )
-                )}
+                    </>
+                  </div>
+                ))}
               </div>
             )}
           </div>
