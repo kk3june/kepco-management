@@ -187,7 +187,9 @@ export interface UpdateCustomerRequest {
   powerPlannerId: string;
   powerPlannerPassword: string;
   buildingType: BuildingType;
-  tenantFactory: boolean;
+  isTenantFactory: true;
+  newTenantCompanyList: TenantCompany[];
+  deleteTenantCompanyList: number[];
   salesmanId: number | null;
   engineerId: number | null;
   projectCost: number;
@@ -195,6 +197,7 @@ export interface UpdateCustomerRequest {
   subsidy: number;
   projectPeriod: string;
   progressStatus: ProgressStatus;
+  isDelete: boolean;
   newAttachmentFileList: AttachmentFile[];
   deleteAttachmentFileList: number[];
 }
