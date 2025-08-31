@@ -70,11 +70,25 @@ export function CustomerDetail() {
     deleteAttachmentFileList: [],
     isTenantFactory: false,
   });
+  const [showTenantFactoryModal, setShowTenantFactoryModal] = useState(false);
   const [tenantCompanyList, setTenantCompanyList] = useState<TenantCompany[]>(
     []
   );
   const [salesmans, setSalesmans] = useState<Salesman[]>([]);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
+  const [showAddTenantForm, setShowAddTenantForm] = useState(false);
+  const [newTenantCompany, setNewTenantCompany] = useState({
+    tenantCompanyName: "",
+    januaryElectricUsage: "",
+    augustElectricUsage: "",
+  });
+  // 새로운 임차업체와 삭제할 임차업체를 별도로 관리
+  const [newTenantCompanies, setNewTenantCompanies] = useState<TenantCompany[]>(
+    []
+  );
+  const [deletedTenantCompanyIds, setDeletedTenantCompanyIds] = useState<
+    number[]
+  >([]);
 
   // 문서 타입 정의
   const documentTypes = [
@@ -175,6 +189,11 @@ export function CustomerDetail() {
 
   const startEditing = () => {
     if (customer) {
+      // 임차공장 리스트 존재 여부에 따라 공장 단독 사용 상태 결정
+      const hasTenantCompanies =
+        customer.tenantCompanyList && customer.tenantCompanyList.length > 0;
+      const isTenantFactory = !hasTenantCompanies; // 임차공장이 있으면 false, 없으면 true
+
       setEditData({
         companyName: customer.companyName,
         representative: customer.representative,
@@ -201,15 +220,25 @@ export function CustomerDetail() {
         isDelete: false,
         newAttachmentFileList: customer.customerFileList,
         deleteAttachmentFileList: [],
-        isTenantFactory: customer.tenantFactory,
+        isTenantFactory: isTenantFactory, // 임차공장 리스트 존재 여부에 따라 설정
       });
       setIsEditing(true);
       setTenantCompanyList(customer.tenantCompanyList);
+      // 편집 시작 시 상태 초기화
+      setNewTenantCompanies([]);
+      setDeletedTenantCompanyIds([]);
     }
   };
 
   const cancelEditing = () => {
     setIsEditing(false);
+    // 편집 취소 시 상태 초기화
+    setNewTenantCompanies([]);
+    setDeletedTenantCompanyIds([]);
+    // 원래 고객 정보로 복원
+    if (customer) {
+      setTenantCompanyList(customer.tenantCompanyList);
+    }
   };
 
   const handleInputChange = (
@@ -220,18 +249,127 @@ export function CustomerDetail() {
   };
 
   const removeTenantCompany = (customerTenantCompanyId: number) => {
+    // 기존 임차업체인 경우 삭제 목록에 추가
+    if (customerTenantCompanyId > 0) {
+      setDeletedTenantCompanyIds((prev) => [...prev, customerTenantCompanyId]);
+    }
+
+    // UI에서 제거
     setTenantCompanyList((prev) =>
       prev.filter(
         (company) => company.customerTenantCompanyId !== customerTenantCompanyId
       )
     );
-    setEditData((prev) => ({
-      ...prev,
-      deleteTenantCompanyList: [
-        ...prev.deleteTenantCompanyList,
-        customerTenantCompanyId,
-      ],
-    }));
+  };
+
+  const removeNewTenantCompany = (tenantCompanyName: string) => {
+    // 새로 추가된 임차업체인 경우 새 목록에서 제거
+    setNewTenantCompanies((prev) =>
+      prev.filter((company) => company.tenantCompanyName !== tenantCompanyName)
+    );
+
+    // UI에서 제거
+    setTenantCompanyList((prev) =>
+      prev.filter((company) => company.tenantCompanyName !== tenantCompanyName)
+    );
+  };
+
+  const addTenantCompany = () => {
+    if (
+      !newTenantCompany.tenantCompanyName ||
+      !newTenantCompany.januaryElectricUsage ||
+      !newTenantCompany.augustElectricUsage
+    ) {
+      alert("모든 필드를 입력해주세요.");
+      return;
+    }
+
+    // 임차업체명 중복 검사 (기존 + 새로 추가된 것 모두 체크)
+    const allTenantNames = [
+      ...tenantCompanyList.map((company) => company.tenantCompanyName),
+      ...newTenantCompanies.map((company) => company.tenantCompanyName),
+    ];
+
+    if (allTenantNames.includes(newTenantCompany.tenantCompanyName)) {
+      alert("이미 등록된 임차업체입니다.");
+      return;
+    }
+
+    const newTenant: TenantCompany = {
+      customerTenantCompanyId: -Date.now(), // 음수로 임시 ID 생성 (기존과 구분)
+      tenantCompanyName: newTenantCompany.tenantCompanyName,
+      januaryElectricUsage: parseInt(newTenantCompany.januaryElectricUsage),
+      augustElectricUsage: parseInt(newTenantCompany.augustElectricUsage),
+    };
+
+    // 새 임차업체 목록에 추가
+    setNewTenantCompanies((prev) => [...prev, newTenant]);
+
+    // UI에 표시
+    setTenantCompanyList((prev) => [...prev, newTenant]);
+
+    // 공장 단독 사용 체크 해제 (임차업체가 추가되었으므로)
+    handleInputChange("isTenantFactory", false);
+
+    // 폼 초기화 및 숨기기
+    setNewTenantCompany({
+      tenantCompanyName: "",
+      januaryElectricUsage: "",
+      augustElectricUsage: "",
+    });
+    setShowAddTenantForm(false);
+  };
+
+  const cancelAddTenant = () => {
+    setShowAddTenantForm(false);
+    setNewTenantCompany({
+      tenantCompanyName: "",
+      januaryElectricUsage: "",
+      augustElectricUsage: "",
+    });
+  };
+
+  const handleTenantFactoryChange = (checked: boolean) => {
+    // 현재 임차업체가 존재하는지 확인
+    const hasExistingTenants = tenantCompanyList.some(
+      (company) => company.customerTenantCompanyId > 0
+    );
+    const hasNewTenants = newTenantCompanies.length > 0;
+
+    if ((hasExistingTenants || hasNewTenants) && checked) {
+      // 임차업체가 존재하는 상태에서 공장 단독 사용을 체크하려는 경우
+      setShowTenantFactoryModal(true);
+    } else {
+      // 임차업체가 없거나 체크를 해제하는 경우
+      handleInputChange("isTenantFactory", checked);
+
+      if (checked) {
+        // 공장 단독 사용 체크 시 모든 임차업체 초기화
+        clearAllTenantCompanies();
+      }
+    }
+  };
+
+  const confirmTenantFactoryChange = () => {
+    // 모달에서 확인 버튼을 누른 경우
+    handleInputChange("isTenantFactory", true);
+    clearAllTenantCompanies();
+    setShowTenantFactoryModal(false);
+  };
+
+  const clearAllTenantCompanies = () => {
+    // 기존 임차업체들을 삭제 목록에 추가
+    const existingTenantIds = tenantCompanyList
+      .filter((company) => company.customerTenantCompanyId > 0)
+      .map((company) => company.customerTenantCompanyId);
+
+    setDeletedTenantCompanyIds((prev) => [...prev, ...existingTenantIds]);
+
+    // 새로 추가된 임차업체들도 초기화
+    setNewTenantCompanies([]);
+
+    // UI에서 모든 임차업체 제거
+    setTenantCompanyList([]);
   };
 
   const handleSave = async () => {
@@ -253,9 +391,16 @@ export function CustomerDetail() {
         }
       }
 
+      // 최종 데이터 구성
+      const finalEditData = {
+        ...editData,
+        newTenantCompanyList: newTenantCompanies,
+        deleteTenantCompanyList: deletedTenantCompanyIds,
+      };
+
       const response = await apiClient.patch(
         API_ENDPOINTS.CUSTOMERS.UPDATE(customer.customerId.toString()),
-        editData
+        finalEditData
       );
 
       if (response.error) {
@@ -267,7 +412,6 @@ export function CustomerDetail() {
       // 성공 시 고객 정보 새로고침
       await fetchCustomer(customer.customerId.toString());
       setIsEditing(false);
-      // setEditData({});
       alert("수정이 완료되었습니다.");
     } catch (error) {
       console.error("Error:", error);
@@ -715,9 +859,7 @@ export function CustomerDetail() {
                     <Checkbox
                       id="singleUse"
                       checked={editData.isTenantFactory}
-                      onCheckedChange={(checked) =>
-                        handleInputChange("isTenantFactory", !!checked)
-                      }
+                      onCheckedChange={handleTenantFactoryChange}
                     />
                     <Label htmlFor="singleUse">공장 단독 사용</Label>
                   </>
@@ -726,7 +868,7 @@ export function CustomerDetail() {
               {isEditing && (
                 <Button
                   type="button"
-                  onClick={() => handleInputChange("isTenantFactory", true)}
+                  onClick={() => setShowAddTenantForm(true)}
                   variant="outline"
                   size="sm"
                 >
@@ -735,50 +877,133 @@ export function CustomerDetail() {
               )}
             </div>
 
-            {tenantCompanyList && (
-              <div className="space-y-2">
-                {/* 테이블 헤더 */}
-                <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
-                  <div>임차업체명 *</div>
-                  <div>1월 전기사용량 (kWh) *</div>
-                  <div>8월 전기사용량 (kWh) *</div>
-                  <div></div>
-                </div>
-
-                {/* 테이블 행들 */}
-                {tenantCompanyList.map((company, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-4 gap-4 items-center"
-                  >
-                    <>
-                      <div className="text-sm py-2">
-                        {company.tenantCompanyName}
-                      </div>
-                      <div className="text-sm py-2">
-                        {company.januaryElectricUsage}
-                      </div>
-                      <div className="text-sm py-2">
-                        {company.augustElectricUsage}
-                      </div>
-                      {isEditing && canManageFiles() && (
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            removeTenantCompany(company.customerTenantCompanyId)
-                          }
-                          variant="destructive"
-                          size="sm"
-                          className="h-9 px-3"
-                        >
-                          삭제
-                        </Button>
-                      )}
-                    </>
+            {/* 임차업체 추가 폼 */}
+            {showAddTenantForm && (
+              <div className="border border-gray-300 rounded-lg p-4 bg-gray-50 mb-4">
+                <h5 className="font-medium text-gray-900 mb-3">
+                  새 임차업체 추가
+                </h5>
+                <div className="grid grid-cols-4 gap-4 items-center">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="임차업체명"
+                      value={newTenantCompany.tenantCompanyName}
+                      onChange={(e) =>
+                        setNewTenantCompany((prev) => ({
+                          ...prev,
+                          tenantCompanyName: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
                   </div>
-                ))}
+                  <div>
+                    <input
+                      type="number"
+                      placeholder="1월 전기사용량"
+                      value={newTenantCompany.januaryElectricUsage}
+                      onChange={(e) =>
+                        setNewTenantCompany((prev) => ({
+                          ...prev,
+                          januaryElectricUsage: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      placeholder="8월 전기사용량"
+                      value={newTenantCompany.augustElectricUsage}
+                      onChange={(e) =>
+                        setNewTenantCompany((prev) => ({
+                          ...prev,
+                          augustElectricUsage: e.target.value,
+                        }))
+                      }
+                      className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                    />
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      type="button"
+                      onClick={addTenantCompany}
+                      size="sm"
+                      className="h-9 px-3"
+                    >
+                      추가
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={cancelAddTenant}
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-3"
+                    >
+                      취소
+                    </Button>
+                  </div>
+                </div>
               </div>
             )}
+
+            {!editData.isTenantFactory &&
+              tenantCompanyList &&
+              tenantCompanyList.length > 0 && (
+                <div className="space-y-2">
+                  {/* 테이블 헤더 */}
+                  <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
+                    <div>임차업체명 *</div>
+                    <div>1월 전기사용량 (kWh) *</div>
+                    <div>8월 전기사용량 (kWh) *</div>
+                    <div></div>
+                  </div>
+
+                  {/* 테이블 행들 */}
+                  {tenantCompanyList.map((company, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-4 gap-4 items-center"
+                    >
+                      <>
+                        <div className="text-sm py-2">
+                          {company.tenantCompanyName}
+                        </div>
+                        <div className="text-sm py-2">
+                          {company.januaryElectricUsage}
+                        </div>
+                        <div className="text-sm py-2">
+                          {company.augustElectricUsage}
+                        </div>
+                        {isEditing && canManageFiles() && (
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              // 새로 추가된 임차업체인지 기존 임차업체인지 구분
+                              if (company.customerTenantCompanyId < 0) {
+                                removeNewTenantCompany(
+                                  company.tenantCompanyName
+                                );
+                              } else {
+                                removeTenantCompany(
+                                  company.customerTenantCompanyId
+                                );
+                              }
+                            }}
+                            variant="destructive"
+                            size="sm"
+                            className="h-9 px-3"
+                          >
+                            삭제
+                          </Button>
+                        )}
+                      </>
+                    </div>
+                  ))}
+                </div>
+              )}
           </div>
 
           {/* 추가 정보 섹션 */}
@@ -1210,6 +1435,30 @@ export function CustomerDetail() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* 확인 모달 */}
+      {showTenantFactoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              공장 단독 사용 설정
+            </h3>
+            <p className="text-gray-600 mb-6">
+              공장 단독 사용으로 설정하면 등록된 모든 임차업체 정보가
+              초기화됩니다. 계속하시겠습니까?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowTenantFactoryModal(false)}
+              >
+                취소
+              </Button>
+              <Button onClick={confirmTenantFactoryChange}>확인</Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 첨부 문서 섹션 - 모든 사용자가 볼 수 있음 */}
