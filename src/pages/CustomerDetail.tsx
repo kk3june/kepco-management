@@ -7,6 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/Card";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { Input } from "@/components/ui/Input";
+import { Label } from "@/components/ui/Label";
 import {
   API_ENDPOINTS,
   apiClient,
@@ -582,7 +585,7 @@ export function CustomerDetail() {
         </CardHeader>
         <CardContent>
           {/* 기본 정보 섹션 */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-2">
             <div>
               <p className="text-sm font-medium text-gray-500">건물형태</p>
               {isEditing && canManageFiles() ? (
@@ -659,30 +662,146 @@ export function CustomerDetail() {
             </div>
           </div>
 
+          <div className="space-y-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                {isEditing ? (
+                  <Checkbox
+                    id="singleUse"
+                    checked={editData.tenantFactory ?? customer.tenantFactory}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("tenantFactory", !!checked)
+                    }
+                  />
+                ) : (
+                  <div className="w-4 h-4 rounded border-2 border-gray-300 flex items-center justify-center">
+                    {customer.tenantFactory && (
+                      <div className="w-2 h-2 bg-blue-600 rounded-sm" />
+                    )}
+                  </div>
+                )}
+                <Label htmlFor="singleUse">공장 단독 사용</Label>
+              </div>
+              {isEditing &&
+                !(editData.tenantFactory ?? customer.tenantFactory) && (
+                  <Button
+                    type="button"
+                    onClick={() => handleInputChange("tenantFactory", true)}
+                    variant="outline"
+                    size="sm"
+                  >
+                    임차업체 추가
+                  </Button>
+                )}
+            </div>
+
+            {!(editData.tenantFactory ?? customer.tenantFactory) && (
+              <div className="space-y-2">
+                {/* 테이블 헤더 */}
+                <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-700 border-b pb-2">
+                  <div>임차업체명 *</div>
+                  <div>1월 전기사용량 (kWh) *</div>
+                  <div>8월 전기사용량 (kWh) *</div>
+                  <div></div>
+                </div>
+
+                {/* 테이블 행들 */}
+                {(editData.tenantCompanyList ?? customer.tenantCompanyList).map(
+                  (company, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-4 gap-4 items-center"
+                    >
+                      {isEditing ? (
+                        <>
+                          <Input
+                            value={company.tenantCompanyName}
+                            onChange={(e) =>
+                              console.log(index, "name", e.target.value)
+                            }
+                            placeholder="임차업체명"
+                            className="h-9"
+                          />
+                          <Input
+                            value={company.januaryElectricUsage}
+                            onChange={(e) =>
+                              console.log(index, "jan", e.target.value)
+                            }
+                            placeholder="0"
+                            type="number"
+                            className="h-9"
+                          />
+                          <Input
+                            value={company.augustElectricUsage}
+                            onChange={(e) =>
+                              console.log(index, "aug", e.target.value)
+                            }
+                            placeholder="0"
+                            type="number"
+                            className="h-9"
+                          />
+                          <div className="flex justify-center">
+                            {(
+                              editData.tenantCompanyList ??
+                              customer.tenantCompanyList
+                            ).length > 1 && (
+                              <Button
+                                type="button"
+                                onClick={(e) => console.log(e)}
+                                variant="destructive"
+                                size="sm"
+                                className="h-9 px-3"
+                              >
+                                삭제
+                              </Button>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-sm py-2">
+                            {company.tenantCompanyName}
+                          </div>
+                          <div className="text-sm py-2">
+                            {company.januaryElectricUsage}
+                          </div>
+                          <div className="text-sm py-2">
+                            {company.augustElectricUsage}
+                          </div>
+                          <div></div>
+                        </>
+                      )}
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+
           {/* 추가 정보 섹션 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <h4 className="font-medium text-gray-900 mb-3">업무 정보</h4>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">업종/업태</p>
+                  <p className="text-sm font-medium text-gray-500">업태/업종</p>
                   {isEditing && canManageFiles() ? (
                     <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder="업종"
-                        value={editData.businessType || ""}
-                        onChange={(e) =>
-                          handleInputChange("businessType", e.target.value)
-                        }
-                        className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
-                      />
                       <input
                         type="text"
                         placeholder="업태"
                         value={editData.businessItem || ""}
                         onChange={(e) =>
                           handleInputChange("businessItem", e.target.value)
+                        }
+                        className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
+                      />
+                      <input
+                        type="text"
+                        placeholder="업종"
+                        value={editData.businessType || ""}
+                        onChange={(e) =>
+                          handleInputChange("businessType", e.target.value)
                         }
                         className="w-full bg-white border border-gray-300 rounded px-2 py-1 text-sm"
                       />
