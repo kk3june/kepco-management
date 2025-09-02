@@ -13,8 +13,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target:
-          "http://ec2-3-36-179-72.ap-northeast-2.compute.amazonaws.com:8080",
+        target: "https://kepco.shop",
         changeOrigin: true,
         secure: false,
       },
