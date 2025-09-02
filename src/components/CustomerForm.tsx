@@ -45,6 +45,7 @@ import {
   EngineerResponse,
   Salesman,
   SalesmanResponse,
+  UpdateTenantCompany,
 } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
@@ -264,11 +265,13 @@ export function CustomerForm({
               company.name.trim() &&
               (parseInt(company.jan) > 0 || parseInt(company.aug) > 0)
           )
-          .map((company) => ({
-            tenantCompanyName: company.name,
-            januaryElectricUsage: parseInt(company.jan) || 0,
-            augustElectricUsage: parseInt(company.aug) || 0,
-          }));
+          .map(
+            (company): UpdateTenantCompany => ({
+              tenantCompanyName: company.name,
+              januaryElectricUsage: parseInt(company.jan) || 0,
+              augustElectricUsage: parseInt(company.aug) || 0,
+            })
+          );
       } else {
         // 공장이 단독사용이거나 공장이 아닌 경우 빈 배열로 설정
         data.tenantCompanyList = [];
