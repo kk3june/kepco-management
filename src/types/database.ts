@@ -140,7 +140,7 @@ export interface AddCustomerRequest {
   powerPlannerId: string;
   powerPlannerPassword: string;
   buildingType: BuildingType;
-  tenantCompanyList: TenantCompany[];
+  tenantCompanyList: UpdateTenantCompany[];
   salesmanId: number | null;
   engineerId: number | null;
   projectCost: number;
