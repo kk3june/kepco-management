@@ -33,7 +33,6 @@ interface FileUploadProps {
 }
 
 export function FileUpload({
-  customerId,
   documentType,
   title,
   description,
