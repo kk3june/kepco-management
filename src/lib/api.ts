@@ -2,7 +2,7 @@ import { CompanyNameCheckResponse } from "@/types/database";
 
 const API_BASE_URL = import.meta.env.DEV
   ? "" // 개발 환경에서는 프록시 사용
-  : "http://ec2-3-36-179-72.ap-northeast-2.compute.amazonaws.com:8080";
+  : import.meta.env.VITE_API_BASE_URL;
 
 export interface ApiResponse<T> {
   data?: T;
