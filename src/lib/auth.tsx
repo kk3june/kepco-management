@@ -47,8 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (username) {
           setUser({ username, role });
-        } else {
-          console.log("사용자 이름을 찾을 수 없음:", userInfo);
         }
       } catch (error) {
         console.error("토큰 파싱 실패:", error);
@@ -123,8 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 토큰 만료 처리 함수 추가
   const handleTokenExpiration = () => {
-    console.log("토큰이 만료되었습니다. 로그인 화면으로 이동합니다.");
-
     // 사용자 상태 초기화
     setUser(null);
 

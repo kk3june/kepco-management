@@ -114,22 +114,27 @@ export function Customers() {
 
       if (response.error) {
         console.error("Error deleting customer:", response.error);
-        toast.error(
-          "삭제 실패",
-          `수용가 삭제 중 오류가 발생했습니다: ${response.error}`
-        );
+        toast({
+          title: "삭제 실패",
+          description: `수용가 삭제 중 오류가 발생했습니다: ${response.error}`,
+          variant: "destructive",
+        });
         return;
       }
-
       // 성공 메시지 표시
-      toast.success("삭제 완료", "수용가가 성공적으로 삭제되었습니다.");
+      toast({
+        title: "삭제 완료",
+        description: "수용가가 성공적으로 삭제되었습니다.",
+        variant: "default",
+      });
       fetchCustomers();
     } catch (error) {
       console.error("Error:", error);
-      toast.error(
-        "삭제 실패",
-        "수용가 삭제 중 오류가 발생했습니다. 다시 시도해주세요."
-      );
+      toast({
+        title: "삭제 실패",
+        description: "수용가 삭제 중 오류가 발생했습니다. 다시 시도해주세요.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -160,19 +165,28 @@ export function Customers() {
 
       if (response.error) {
         console.error("Error creating customer:", response.error);
-        toast.error("생성 실패", "수용가 생성 중 오류가 발생했습니다.");
+        toast({
+          title: "생성 실패",
+          description: "수용가 생성 중 오류가 발생했습니다.",
+          variant: "destructive",
+        });
         return;
       }
 
-      toast.success("생성 완료", "수용가가 성공적으로 생성되었습니다.");
+      toast({
+        title: "생성 완료",
+        description: "수용가가 성공적으로 생성되었습니다.",
+        variant: "default",
+      });
       setIsFormOpen(false);
       fetchCustomers();
     } catch (error) {
       console.error("Error:", error);
-      toast.error(
-        "생성 실패",
-        "수용가 생성 중 오류가 발생했습니다. 다시 시도해주세요."
-      );
+      toast({
+        title: "생성 실패",
+        description: "수용가 생성 중 오류가 발생했습니다. 다시 시도해주세요.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -236,8 +250,8 @@ export function Customers() {
               : "담당하고 있는 수용가 목록입니다."}
           </p>
         </div>
-        {/* ADMIN만 수용가 추가 버튼 표시 */}
-        {user?.role === "ADMIN" && (
+        {/* ADMIN과 SALESMAN만 수용가 추가 버튼 표시 */}
+        {(user?.role === "ADMIN" || user?.role === "SALESMAN") && (
           <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             수용가 추가
@@ -253,7 +267,7 @@ export function Customers() {
                 ? "등록된 수용가가 없습니다."
                 : "담당하고 있는 수용가가 없습니다."}
             </p>
-            {user?.role === "ADMIN" && (
+            {(user?.role === "ADMIN" || user?.role === "SALESMAN") && (
               <Button onClick={handleCreate}>
                 <Plus className="mr-2 h-4 w-4" />첫 수용가 추가하기
               </Button>
@@ -355,8 +369,8 @@ export function Customers() {
         </Card>
       )}
 
-      {/* ADMIN만 수용가 추가 폼 표시 */}
-      {user?.role === "ADMIN" && (
+      {/* ADMIN과 SALESMAN만 수용가 추가 폼 표시 */}
+      {(user?.role === "ADMIN" || user?.role === "SALESMAN") && (
         <CustomerForm
           open={isFormOpen}
           onOpenChange={setIsFormOpen}
