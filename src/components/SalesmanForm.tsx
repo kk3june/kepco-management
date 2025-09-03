@@ -31,7 +31,7 @@ import {
 } from "@/lib/utils";
 import { Salesman, SalesmanRequest } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -76,6 +76,8 @@ export function SalesmanForm({
   salesman,
   onSubmit,
 }: SalesmanFormProps) {
+  const [showUserIdWarning, setShowUserIdWarning] = useState(false);
+
   const form = useForm<SalesmanFormData>({
     resolver: zodResolver(salesmanSchema),
     defaultValues: {
@@ -189,13 +191,32 @@ export function SalesmanForm({
                       <FormControl>
                         <Input
                           {...field}
-                          placeholder="영문 소문자, 숫자, 특수문자(_-.)"
+                          placeholder="영문 소문자, 숫자, 특수문자(_-.)만 입력 가능"
                           value={field.value ? formatUserId(field.value) : ""}
+                          onInput={(e) => {
+                            const originalValue = e.currentTarget.value;
+                            const formattedValue = formatUserId(originalValue);
+
+                            // 허용되지 않는 문자가 입력된 경우 경고 표시
+                            if (originalValue !== formattedValue) {
+                              setShowUserIdWarning(true);
+                              // 3초 후 경고 숨기기
+                              setTimeout(
+                                () => setShowUserIdWarning(false),
+                                3000
+                              );
+                            }
+                          }}
                           onChange={(e) =>
                             field.onChange(formatUserId(e.target.value))
                           }
                         />
                       </FormControl>
+                      {showUserIdWarning && (
+                        <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2 mt-1">
+                          ⚠️ 영문 소문자, 숫자, 특수문자(_-.)만 입력 가능합니다.
+                        </div>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -240,7 +261,7 @@ export function SalesmanForm({
                       <FormControl>
                         <Input
                           {...field}
-                          placeholder="010-1234-5678"
+                          placeholder="숫자만 입력 가능합니다."
                           value={
                             field.value ? formatPhoneNumber(field.value) : ""
                           }

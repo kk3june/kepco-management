@@ -693,9 +693,6 @@ export function CustomerDetail() {
     return descriptions[documentType] || "문서를 업로드해주세요.";
   }
 
-  console.log("customer", customer);
-  console.log("editData", editData);
-
   return (
     <div className="space-y-6">
       {/* Header */}

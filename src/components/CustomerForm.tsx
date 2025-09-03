@@ -60,7 +60,12 @@ const customerSchema = z.object({
   businessType: z.string().min(1, "업종을 입력해주세요"),
   businessItem: z.string().min(1, "업태를 입력해주세요"),
   businessAddress: z.string().min(1, "사업장 주소를 입력해주세요"),
-  managerName: z.string().min(1, "담당자명을 입력해주세요"),
+  managerName: z
+    .string({
+      required_error: "담당자명을 입력해주세요",
+      invalid_type_error: "올바른 담당자명을 입력해주세요",
+    })
+    .min(1, "담당자명을 입력해주세요"),
   companyPhone: z.string().min(1, "회사전화를 입력해주세요"),
   email: z.string().email("올바른 이메일을 입력해주세요"),
   phoneNumber: z.string().min(1, "휴대전화를 입력해주세요"),
@@ -76,16 +81,22 @@ const customerSchema = z.object({
   powerPlannerPassword: z
     .string()
     .min(1, "한전파워플래너 패스워드를 입력해주세요"),
-  buildingType: z.enum([
-    "FACTORY",
-    "KNOWLEDGE_INDUSTRY_CENTER",
-    "BUILDING",
-    "MIXED_USE_COMPLEX",
-    "APARTMENT_COMPLEX",
-    "SCHOOL",
-    "HOTEL",
-    "OTHER",
-  ]),
+  buildingType: z.enum(
+    [
+      "FACTORY",
+      "KNOWLEDGE_INDUSTRY_CENTER",
+      "BUILDING",
+      "MIXED_USE_COMPLEX",
+      "APARTMENT_COMPLEX",
+      "SCHOOL",
+      "HOTEL",
+      "OTHER",
+    ],
+    {
+      required_error: "건축물 형태를 선택해주세요",
+      invalid_type_error: "올바른 건축물 형태를 선택해주세요",
+    }
+  ),
   salesmanId: z.number().nullable().optional(),
   engineerId: z.number().nullable().optional(),
   projectCost: z.number().min(0, "사업비용을 입력해주세요"),
@@ -131,6 +142,7 @@ export function CustomerForm({
   );
   const [gometaFile, setGometaFile] = useState<File | null>(null);
   const [hasGometaData, setHasGometaData] = useState(true);
+  const [showUserIdWarning, setShowUserIdWarning] = useState(false);
 
   const [tenantCompanies, setTenantCompanies] = useState([
     { name: "", jan: "", aug: "" },
@@ -143,6 +155,7 @@ export function CustomerForm({
 
   const form = useForm<AddCustomerRequest>({
     resolver: zodResolver(customerSchema),
+    mode: "onSubmit",
     defaultValues: {
       companyName: "",
       representative: "",
@@ -174,6 +187,7 @@ export function CustomerForm({
     if (open) {
       fetchSalesmans();
       fetchEngineers();
+
       // 폼을 초기 상태로 리셋
       form.reset({
         companyName: "",
@@ -235,16 +249,23 @@ export function CustomerForm({
 
   const handleFormSubmit = form.handleSubmit(
     async (data) => {
-      console.log("✅ Form submitted successfully with data:", data);
-
       // 필수 파일 검증
+      const missingFiles = [];
+
       if (!businessLicenseFile) {
-        toast.error("입력 오류", "사업자등록증을 업로드해주세요.");
-        return;
+        missingFiles.push("사업자등록증");
       }
 
       if (electricalDiagramFiles.length === 0) {
-        toast.error("입력 오류", "변전실도면을 업로드해주세요.");
+        missingFiles.push("변전실도면");
+      }
+
+      if (missingFiles.length > 0) {
+        toast({
+          title: "필수 파일 누락",
+          description: `다음 파일을 업로드해주세요: ${missingFiles.join(", ")}`,
+          variant: "destructive",
+        });
         return;
       }
 
@@ -256,7 +277,11 @@ export function CustomerForm({
             (parseInt(company.jan) > 0 || parseInt(company.aug) > 0)
         );
         if (!hasValidTenant) {
-          toast.error("입력 오류", "임차 업체 정보를 입력해주세요.");
+          toast({
+            title: "입력 오류",
+            description: "임차 업체 정보를 입력해주세요.",
+            variant: "destructive",
+          });
           return;
         }
       }
@@ -326,15 +351,25 @@ export function CustomerForm({
           attachmentFileList,
         };
 
-        console.log("📎 Final attachmentFileList:", attachmentFileList);
         onSubmit(normalizedData);
       } catch (error) {
         console.error("파일 업로드 중 오류:", error);
-        toast.error("파일 업로드 오류", "파일 업로드 중 오류가 발생했습니다.");
+        toast({
+          title: "파일 업로드 오류",
+          description: "파일 업로드 중 오류가 발생했습니다.",
+          variant: "destructive",
+        });
       }
     },
     (errors) => {
-      console.log("❌ Form validation errors:", errors);
+      console.error("Form validation errors:", errors);
+
+      // 유효성 검사 실패 시 toast 메시지 표시
+      toast({
+        title: "입력 오류",
+        description: "모든 탭의 필수 입력값을 입력해주세요.",
+        variant: "destructive",
+      });
     }
   );
 
@@ -363,10 +398,11 @@ export function CustomerForm({
       const totalFiles = electricalDiagramFiles.length + newFiles.length;
 
       if (totalFiles > 5) {
-        toast.error(
-          "파일 개수 초과",
-          "변전실도면은 최대 5장까지 업로드할 수 있습니다."
-        );
+        toast({
+          title: "파일 개수 초과",
+          description: "변전실도면은 최대 5장까지 업로드할 수 있습니다.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -481,10 +517,11 @@ export function CustomerForm({
     } catch (error) {
       console.error("파일 처리 중 오류:", error);
 
-      toast.error(
-        "파일 업로드 오류",
-        `${file.name} 파일 업로드에 실패했습니다.`
-      );
+      toast({
+        title: "파일 업로드 오류",
+        description: `${file.name} 파일 업로드에 실패했습니다.`,
+        variant: "destructive",
+      });
       return null;
     }
   };
@@ -667,7 +704,7 @@ export function CustomerForm({
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="010-1234-5678"
+                              placeholder="숫자만 입력 가능합니다."
                               value={
                                 field.value
                                   ? formatPhoneNumber(field.value)
@@ -714,15 +751,40 @@ export function CustomerForm({
                             <FormControl>
                               <Input
                                 {...field}
-                                placeholder="영문 소문자, 숫자, 특수문자(_-.)"
+                                placeholder="영문 소문자, 숫자, 특수문자(_-.)만 입력 가능"
                                 value={
                                   field.value ? formatUserId(field.value) : ""
                                 }
-                                onChange={(e) =>
-                                  field.onChange(formatUserId(e.target.value))
-                                }
+                                onInput={(e) => {
+                                  const originalValue = e.currentTarget.value;
+                                  const formattedValue =
+                                    formatUserId(originalValue);
+
+                                  // 허용되지 않는 문자가 입력된 경우 경고 표시
+                                  if (originalValue !== formattedValue) {
+                                    setShowUserIdWarning(true);
+                                    // 3초 후 경고 숨기기
+                                    setTimeout(
+                                      () => setShowUserIdWarning(false),
+                                      3000
+                                    );
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  const formattedValue = formatUserId(
+                                    e.target.value
+                                  );
+                                  field.onChange(formattedValue);
+                                }}
                               />
                             </FormControl>
+                            {showUserIdWarning && (
+                              <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md p-2 mt-1">
+                                ⚠️ 영문 소문자, 숫자, 특수문자(_-.)만 입력
+                                가능합니다.
+                              </div>
+                            )}
+
                             <FormMessage />
                           </FormItem>
                         )}
@@ -828,7 +890,7 @@ export function CustomerForm({
                           <FormLabel>건축물 형태 *</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            value={field.value}
+                            value={field.value || undefined}
                           >
                             <FormControl>
                               <SelectTrigger>
