@@ -88,10 +88,10 @@ export function Salesmans() {
         const updateData = {
           username: editingSalesman.userId, // 기존 userId 사용
           password: editingSalesman.userPw, // 기존 비밀번호 유지
-          salesmanName: data.salesmanName,
-          salesmanPhone: data.salesmanPhone,
-          salesmanEmail: data.salesmanEmail,
-          salesmanAddress: data.salesmanAddress,
+          salesmanName: data.name,
+          salesmanPhone: data.phone,
+          salesmanEmail: data.email,
+          salesmanAddress: data.address,
           commissionRate: data.commissionRate,
           settlementMethod: data.settlementMethod,
           bankName: data.bankName,

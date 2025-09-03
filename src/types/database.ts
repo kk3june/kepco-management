@@ -7,10 +7,10 @@ export interface ApiResponse<T> {
 export interface SalesmanRequest {
   username: string;
   password: string;
-  salesmanName: string;
-  salesmanPhone: string;
-  salesmanEmail: string;
-  salesmanAddress: string;
+  name: string;
+  phone: string;
+  email: string;
+  address: string;
   commissionRate: number;
   settlementMethod: "INVOICE" | "WITHHOLDING_TAX";
   bankName: string;
