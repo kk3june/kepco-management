@@ -48,7 +48,7 @@ import {
   UpdateTenantCompany,
 } from "@/types/database";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import * as z from "zod";
 import { Button } from "./ui/Button";
@@ -135,6 +135,11 @@ export function CustomerForm({
   const [tenantCompanies, setTenantCompanies] = useState([
     { name: "", jan: "", aug: "" },
   ]);
+
+  // 파일 input refs
+  const businessLicenseInputRef = useRef<HTMLInputElement>(null);
+  const electricalDiagramInputRef = useRef<HTMLInputElement>(null);
+  const gometaFileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<AddCustomerRequest>({
     resolver: zodResolver(customerSchema),
@@ -374,10 +379,22 @@ export function CustomerForm({
   const removeFile = (field: string, index?: number) => {
     if (field === "businessLicense") {
       setBusinessLicenseFile(null);
+      // input value 리셋
+      if (businessLicenseInputRef.current) {
+        businessLicenseInputRef.current.value = "";
+      }
     } else if (field === "electricalDiagram" && typeof index === "number") {
       setElectricalDiagramFiles((prev) => prev.filter((_, i) => i !== index));
+      // input value 리셋
+      if (electricalDiagramInputRef.current) {
+        electricalDiagramInputRef.current.value = "";
+      }
     } else if (field === "gometaFile") {
       setGometaFile(null);
+      // input value 리셋
+      if (gometaFileInputRef.current) {
+        gometaFileInputRef.current.value = "";
+      }
     }
   };
 
@@ -998,6 +1015,7 @@ export function CustomerForm({
                                 </p>
                               </div>
                               <input
+                                ref={gometaFileInputRef}
                                 type="file"
                                 className="hidden"
                                 accept=".xlsx,.xls"
@@ -1080,6 +1098,7 @@ export function CustomerForm({
                           </p>
                         </div>
                         <input
+                          ref={businessLicenseInputRef}
                           type="file"
                           className="hidden"
                           accept="image/*,.pdf"
@@ -1164,6 +1183,7 @@ export function CustomerForm({
                           )}
                         </div>
                         <input
+                          ref={electricalDiagramInputRef}
                           type="file"
                           className="hidden"
                           accept="image/*,.pdf"
