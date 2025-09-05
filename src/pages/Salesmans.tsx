@@ -86,8 +86,8 @@ export function Salesmans() {
       if (editingSalesman) {
         // 수정 - updateSalesman API 구조에 맞춰 변환
         const updateData = {
-          username: editingSalesman.userId, // 기존 userId 사용
-          password: editingSalesman.userPw, // 기존 비밀번호 유지
+          username: data.username, // 폼에서 입력한 아이디 사용
+          password: data.password, // 폼에서 입력한 비밀번호 사용
           salesmanName: data.name,
           salesmanPhone: data.phone,
           salesmanEmail: data.email,
