@@ -100,6 +100,7 @@ export function CustomerDetail() {
     { code: "SAVINGS_PROOF", label: "전기요금 절감 확인서" },
     { code: "INSURANCE", label: "보증 보험 증권" },
     { code: "KEPCO_APPLICATION", label: "한전 대관 신청서" },
+    { code: "FEASIBILITY_REPORT", label: "타당성 검토 보고서" },
   ] as const;
 
   // 문서 타입 코드 타입
@@ -689,6 +690,7 @@ export function CustomerDetail() {
       SAVINGS_PROOF: "전기요금 절감 확인서를 업로드해주세요.",
       INSURANCE: "보증 보험 증권을 업로드해주세요.",
       KEPCO_APPLICATION: "한전 대관 신청서를 업로드해주세요.",
+      FEASIBILITY_REPORT: "타당성 검토 보고서를 업로드해주세요.",
     };
     return descriptions[documentType] || "문서를 업로드해주세요.";
   }

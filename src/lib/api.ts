@@ -300,6 +300,7 @@ export async function getUploadUrls(
       | "SAVINGS_PROOF"
       | "INSURANCE"
       | "KEPCO_APPLICATION"
+      | "FEASIBILITY_REPORT"
       | "OTHER";
     extension: string;
     contentType: string;

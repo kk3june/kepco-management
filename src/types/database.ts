@@ -91,6 +91,7 @@ export type Category =
   | "SAVINGS_PROOF"
   | "INSURANCE"
   | "KEPCO_APPLICATION"
+  | "FEASIBILITY_REPORT"
   | "OTHER";
 export interface Customer {
   customerId: number;

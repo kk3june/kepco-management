@@ -220,30 +220,48 @@ export function FileUpload({
         <CardContent className="space-y-4">
           {/* 파일 업로드 섹션 */}
           {!readOnly && (
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <input
-                  id={`file-${documentType}`}
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
+            <div className="bg-gray-50 rounded-md p-3 border border-gray-200">
+              <input
+                id={`file-${documentType}`}
+                type="file"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor={`file-${documentType}`}
+                  className="flex-1 flex items-center gap-2 px-3 py-2 bg-white border border-dashed border-gray-300 rounded cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                >
+                  <Upload className="h-4 w-4 text-gray-400" />
+                  <span className="text-sm text-gray-600">
+                    파일 선택 (PDF, 이미지, 엑셀 등)
+                  </span>
+                </label>
                 <Button
                   onClick={handleUpload}
                   disabled={!selectedFile || isUploading}
                   size="sm"
-                  className="flex items-center space-x-2"
+                  className="px-4"
                 >
                   {isUploading ? (
-                    <>업로드 중...</>
-                  ) : (
                     <>
-                      <Upload className="h-4 w-4" />
-                      업로드
+                      <div className="animate-spin h-3 w-3 border-2 border-white border-t-transparent rounded-full mr-1.5" />
+                      업로드 중
                     </>
+                  ) : (
+                    "업로드"
                   )}
                 </Button>
               </div>
+              {selectedFile && (
+                <div className="mt-2 text-xs text-gray-600 flex items-center gap-1.5 pl-1">
+                  <FileText className="h-3.5 w-3.5 text-blue-500" />
+                  <span className="truncate">{selectedFile.name}</span>
+                  <span className="text-gray-400">
+                    ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+              )}
             </div>
           )}
 
@@ -304,12 +322,8 @@ export function FileUpload({
 
           {/* 파일이 없을 때 */}
           {files.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
-              <FileText className="h-12 w-12 mx-auto mb-2 text-gray-300" />
+            <div className="text-center py-3 text-gray-400">
               <p className="text-sm">첨부된 파일이 없습니다.</p>
-              <p className="text-xs text-gray-400 mt-1">
-                위의 업로드 버튼을 사용하여 파일을 추가하세요.
-              </p>
             </div>
           )}
         </CardContent>
