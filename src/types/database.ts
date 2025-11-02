@@ -74,7 +74,7 @@ export type BuildingType =
   | "APARTMENT_COMPLEX"
   | "SCHOOL"
   | "HOTEL"
-  | "OTHER";
+  | "ETC";
 export type AcquisitionChannel = "direct" | "website";
 export type ProgressStatus =
   | "REQUESTED"
@@ -92,7 +92,7 @@ export type Category =
   | "INSURANCE"
   | "KEPCO_APPLICATION"
   | "FEASIBILITY_REPORT"
-  | "OTHER";
+  | "ETC";
 export interface Customer {
   customerId: number;
   companyName: string;

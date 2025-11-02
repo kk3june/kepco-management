@@ -429,7 +429,7 @@ export function CustomerDetail() {
       APARTMENT_COMPLEX: "아파트단지",
       SCHOOL: "학교",
       HOTEL: "호텔",
-      OTHER: "기타",
+      ETC: "기타",
     };
     return typeMap[type as keyof typeof typeMap] || type;
   };
@@ -793,7 +793,7 @@ export function CustomerDetail() {
                   <option value="APARTMENT_COMPLEX">아파트단지</option>
                   <option value="SCHOOL">학교</option>
                   <option value="HOTEL">호텔</option>
-                  <option value="OTHER">기타</option>
+                  <option value="ETC">기타</option>
                 </select>
               ) : (
                 <p className="text-sm">

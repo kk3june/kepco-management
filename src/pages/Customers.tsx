@@ -228,7 +228,7 @@ export function Customers() {
       APARTMENT_COMPLEX: "아파트단지",
       SCHOOL: "학교",
       HOTEL: "호텔",
-      OTHER: "기타",
+      ETC: "기타",
     };
     return typeMap[type as keyof typeof typeMap] || type;
   };

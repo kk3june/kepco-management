@@ -48,8 +48,8 @@ export function FileUpload({
   const [isDuplicateModalOpen, setIsDuplicateModalOpen] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  // 변전실도면은 최대 5개까지 첨부 가능, 나머지는 한 개씩만
-  const isMultipleAllowed = documentType === "ELECTRICAL_DIAGRAM";
+  // 변전실도면과 기타는 최대 5개까지 첨부 가능, 나머지는 한 개씩만
+  const isMultipleAllowed = documentType === "ELECTRICAL_DIAGRAM" || documentType === "ETC";
   const hasExistingFiles = files.length > 0;
   const maxFilesReached = isMultipleAllowed && files.length >= 5;
 

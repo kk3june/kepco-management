@@ -301,7 +301,7 @@ export async function getUploadUrls(
       | "INSURANCE"
       | "KEPCO_APPLICATION"
       | "FEASIBILITY_REPORT"
-      | "OTHER";
+      | "ETC";
     extension: string;
     contentType: string;
   }>

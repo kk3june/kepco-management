@@ -90,7 +90,7 @@ const customerSchema = z.object({
       "APARTMENT_COMPLEX",
       "SCHOOL",
       "HOTEL",
-      "OTHER",
+      "ETC",
     ],
     {
       required_error: "건축물 형태를 선택해주세요",
@@ -912,7 +912,7 @@ export function CustomerForm({
                               </SelectItem>
                               <SelectItem value="SCHOOL">학교</SelectItem>
                               <SelectItem value="HOTEL">호텔</SelectItem>
-                              <SelectItem value="OTHER">기타</SelectItem>
+                              <SelectItem value="ETC">기타</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
