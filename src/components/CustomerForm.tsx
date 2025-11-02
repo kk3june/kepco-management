@@ -31,6 +31,7 @@ import {
   getUploadUrls,
   uploadToS3,
 } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { toast } from "@/lib/toast";
 import {
   formatBusinessNumber,
@@ -43,6 +44,7 @@ import {
   AttachmentFile,
   Engineer,
   EngineerResponse,
+  LimitUserListResponse,
   Salesman,
   SalesmanResponse,
   UpdateTenantCompany,
@@ -130,6 +132,7 @@ export function CustomerForm({
   onOpenChange,
   onSubmit,
 }: CustomerFormProps) {
+  const { user } = useAuth();
   const [salesmans, setSalesmans] = useState<Salesman[]>([]);
   const [engineers, setEngineers] = useState<Engineer[]>([]);
 
@@ -223,11 +226,22 @@ export function CustomerForm({
 
   const fetchSalesmans = async () => {
     try {
-      const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
-        API_ENDPOINTS.SALES_REPS.LIST
-      );
-      if (response.data) {
-        setSalesmans(response.data.data?.adminSalesmanList || []);
+      if (user?.role === "ADMIN") {
+        // ADMIN은 전체 리스트 조회
+        const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
+          API_ENDPOINTS.SALES_REPS.LIST
+        );
+        if (response.data) {
+          setSalesmans(response.data.data?.adminSalesmanList || []);
+        }
+      } else {
+        // SALESMAN/ENGINEER는 제한된 리스트 조회
+        const response = await apiClient.get<ApiResponse<LimitUserListResponse>>(
+          API_ENDPOINTS.SALES_REPS.LIMIT_LIST
+        );
+        if (response.data) {
+          setSalesmans(response.data.data?.limitSalesmanList || []);
+        }
       }
     } catch (error) {
       console.error("Error fetching salesmans:", error);
@@ -236,11 +250,22 @@ export function CustomerForm({
 
   const fetchEngineers = async () => {
     try {
-      const response = await apiClient.get<ApiResponse<EngineerResponse>>(
-        API_ENDPOINTS.ENGINEERS.LIST
-      );
-      if (response.data) {
-        setEngineers(response.data.data?.adminEngineerList || []);
+      if (user?.role === "ADMIN") {
+        // ADMIN은 전체 리스트 조회
+        const response = await apiClient.get<ApiResponse<EngineerResponse>>(
+          API_ENDPOINTS.ENGINEERS.LIST
+        );
+        if (response.data) {
+          setEngineers(response.data.data?.adminEngineerList || []);
+        }
+      } else {
+        // SALESMAN/ENGINEER는 제한된 리스트 조회
+        const response = await apiClient.get<ApiResponse<LimitUserListResponse>>(
+          API_ENDPOINTS.ENGINEERS.LIMIT_LIST
+        );
+        if (response.data) {
+          setEngineers(response.data.data?.limitEngineerList || []);
+        }
       }
     } catch (error) {
       console.error("Error fetching engineers:", error);

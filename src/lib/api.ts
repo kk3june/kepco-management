@@ -212,6 +212,7 @@ export const API_ENDPOINTS = {
   // 영업사원
   SALES_REPS: {
     LIST: "/api/home/admin-salesman",
+    LIMIT_LIST: "/api/home/limitUserList", // 영업자/기술사가 사용하는 제한된 리스트
     CREATE: "/api/salesman/register",
     UPDATE: (id: string) => `/api/salesman/${id}`,
     DELETE: (id: string) => `/api/salesman/${id}`,
@@ -221,6 +222,7 @@ export const API_ENDPOINTS = {
   // 엔지니어
   ENGINEERS: {
     LIST: "/api/home/admin-engineer",
+    LIMIT_LIST: "/api/home/limitUserList", // 영업자/기술사가 사용하는 제한된 리스트
     CREATE: "/api/engineer/register",
     UPDATE: (id: string) => `/api/engineer/${id}`,
     DELETE: (id: string) => `/api/engineer/${id}`,

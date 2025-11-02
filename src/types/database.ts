@@ -66,6 +66,11 @@ export interface EngineerResponse {
   adminEngineerList: Engineer[];
 }
 
+export interface LimitUserListResponse {
+  limitSalesmanList: Salesman[];
+  limitEngineerList: Engineer[];
+}
+
 export type BuildingType =
   | "FACTORY"
   | "KNOWLEDGE_INDUSTRY_CENTER"

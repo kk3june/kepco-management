@@ -86,10 +86,11 @@ export function FileUpload({
         return;
       }
 
-      // 변전실도면 최대 5개 제한 체크
+      // 변전실도면과 기타 최대 5개 제한 체크
       if (isMultipleAllowed && maxFilesReached) {
+        const typeLabel = documentType === "ELECTRICAL_DIAGRAM" ? "변전실 도면" : "기타 문서";
         alert(
-          "변전실 도면은 최대 5개까지 첨부 가능합니다. 기존 파일을 삭제한 후 새 파일을 첨부해주세요."
+          `${typeLabel}은 최대 5개까지 첨부 가능합니다. 기존 파일을 삭제한 후 새 파일을 첨부해주세요.`
         );
         event.target.value = "";
         return;
@@ -207,7 +208,7 @@ export function FileUpload({
           <p className="text-sm text-gray-600">{description}</p>
           {isMultipleAllowed ? (
             <div className="text-xs text-blue-600 flex items-center justify-between">
-              <span>변전실 도면은 최대 5개까지 첨부 가능합니다.</span>
+              <span>최대 5개까지 첨부 가능합니다.</span>
               <span className="text-gray-500">{files.length}/5</span>
             </div>
           ) : (

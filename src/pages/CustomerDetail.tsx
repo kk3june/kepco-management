@@ -24,6 +24,7 @@ import {
   Engineer,
   EngineerResponse,
   FileUploadRequest,
+  LimitUserListResponse,
   Salesman,
   SalesmanResponse,
   TenantCompany,
@@ -101,6 +102,7 @@ export function CustomerDetail() {
     { code: "INSURANCE", label: "보증 보험 증권" },
     { code: "KEPCO_APPLICATION", label: "한전 대관 신청서" },
     { code: "FEASIBILITY_REPORT", label: "타당성 검토 보고서" },
+    { code: "ETC", label: "기타" },
   ] as const;
 
   // 문서 타입 코드 타입
@@ -164,11 +166,22 @@ export function CustomerDetail() {
 
   const fetchSalesmans = async () => {
     try {
-      const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
-        API_ENDPOINTS.SALES_REPS.LIST
-      );
-      if (response.data) {
-        setSalesmans(response.data.data?.adminSalesmanList || []);
+      if (user?.role === "ADMIN") {
+        // ADMIN은 전체 리스트 조회
+        const response = await apiClient.get<ApiResponse<SalesmanResponse>>(
+          API_ENDPOINTS.SALES_REPS.LIST
+        );
+        if (response.data) {
+          setSalesmans(response.data.data?.adminSalesmanList || []);
+        }
+      } else {
+        // SALESMAN/ENGINEER는 제한된 리스트 조회
+        const response = await apiClient.get<ApiResponse<LimitUserListResponse>>(
+          API_ENDPOINTS.SALES_REPS.LIMIT_LIST
+        );
+        if (response.data) {
+          setSalesmans(response.data.data?.limitSalesmanList || []);
+        }
       }
     } catch (error) {
       console.error("Error fetching salesmans:", error);
@@ -177,11 +190,22 @@ export function CustomerDetail() {
 
   const fetchEngineers = async () => {
     try {
-      const response = await apiClient.get<ApiResponse<EngineerResponse>>(
-        API_ENDPOINTS.ENGINEERS.LIST
-      );
-      if (response.data) {
-        setEngineers(response.data.data?.adminEngineerList || []);
+      if (user?.role === "ADMIN") {
+        // ADMIN은 전체 리스트 조회
+        const response = await apiClient.get<ApiResponse<EngineerResponse>>(
+          API_ENDPOINTS.ENGINEERS.LIST
+        );
+        if (response.data) {
+          setEngineers(response.data.data?.adminEngineerList || []);
+        }
+      } else {
+        // SALESMAN/ENGINEER는 제한된 리스트 조회
+        const response = await apiClient.get<ApiResponse<LimitUserListResponse>>(
+          API_ENDPOINTS.ENGINEERS.LIMIT_LIST
+        );
+        if (response.data) {
+          setEngineers(response.data.data?.limitEngineerList || []);
+        }
       }
     } catch (error) {
       console.error("Error fetching engineers:", error);
@@ -442,8 +466,8 @@ export function CustomerDetail() {
     if (!customer) return;
 
     try {
-      // 변전실도면이 아닌 경우 기존 파일이 있으면 사용자에게 안내
-      if (documentType !== "ELECTRICAL_DIAGRAM") {
+      // 변전실도면과 기타가 아닌 경우 기존 파일이 있으면 사용자에게 안내
+      if (documentType !== "ELECTRICAL_DIAGRAM" && documentType !== "ETC") {
         const existingFiles = getFilesByDocumentType(documentType);
         if (existingFiles.length > 0) {
           alert(
@@ -453,12 +477,13 @@ export function CustomerDetail() {
         }
       }
 
-      // 변전실도면 최대 5개 제한 체크
-      if (documentType === "ELECTRICAL_DIAGRAM") {
+      // 변전실도면과 기타 최대 5개 제한 체크
+      if (documentType === "ELECTRICAL_DIAGRAM" || documentType === "ETC") {
         const existingFiles = getFilesByDocumentType(documentType);
         if (existingFiles.length >= 5) {
+          const typeLabel = documentType === "ELECTRICAL_DIAGRAM" ? "변전실 도면" : "기타 문서";
           alert(
-            "변전실 도면은 최대 5개까지 첨부 가능합니다. 기존 파일을 삭제한 후 새 파일을 첨부해주세요."
+            `${typeLabel}은 최대 5개까지 첨부 가능합니다. 기존 파일을 삭제한 후 새 파일을 첨부해주세요.`
           );
           return;
         }
@@ -691,6 +716,7 @@ export function CustomerDetail() {
       INSURANCE: "보증 보험 증권을 업로드해주세요.",
       KEPCO_APPLICATION: "한전 대관 신청서를 업로드해주세요.",
       FEASIBILITY_REPORT: "타당성 검토 보고서를 업로드해주세요.",
+      ETC: "기타 관련 문서를 업로드해주세요.",
     };
     return descriptions[documentType] || "문서를 업로드해주세요.";
   }
