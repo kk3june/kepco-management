@@ -54,12 +54,29 @@ class ApiClient {
       });
 
       if (!response.ok) {
-        // 403 에러 처리 추가
-        if (response.status === 403) {
-          // 토큰 만료 처리
-          this.handleTokenExpiration();
+        // 401 Unauthorized - 로그인 엔드포인트가 아닌 경우에만 토큰 만료 처리
+        if (response.status === 401) {
+          // 로그인 API 호출인 경우 토큰 만료 처리 하지 않음
+          const isLoginEndpoint = endpoint.includes('/auth/login');
+
+          if (!isLoginEndpoint) {
+            this.handleTokenExpiration();
+            return {
+              error: "인증이 만료되었습니다. 다시 로그인해주세요.",
+            };
+          }
+
+          // 로그인 실패 시 에러 메시지 반환
+          const errorData = await response.json().catch(() => ({}));
           return {
-            error: "인증이 만료되었습니다. 다시 로그인해주세요.",
+            error: errorData.message || "아이디 또는 비밀번호가 올바르지 않습니다.",
+          };
+        }
+
+        // 403 Forbidden - 권한 없음 (토큰은 유효하지만 접근 권한 없음)
+        if (response.status === 403) {
+          return {
+            error: "이 작업을 수행할 권한이 없습니다.",
           };
         }
 
