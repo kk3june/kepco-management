@@ -371,8 +371,8 @@ export function CustomerForm({
 
         const normalizedData: AddCustomerRequest = {
           ...data,
-          salesmanId: data.salesmanId ?? null,
-          engineerId: data.engineerId ?? null,
+          salesmanId: data.salesmanId === 0 ? null : data.salesmanId,
+          engineerId: data.engineerId === 0 ? null : data.engineerId,
           attachmentFileList,
         };
 
