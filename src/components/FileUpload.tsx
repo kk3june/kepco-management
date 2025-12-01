@@ -11,6 +11,7 @@ import {
 import { CustomerFile } from "@/types/database";
 import {
   AlertTriangle,
+  Download,
   Eye,
   FileArchive,
   FileImage,
@@ -200,6 +201,32 @@ export function FileUpload({
     );
   };
 
+  const handleFileDownload = async (file: CustomerFile) => {
+    if (!file.fileUrl) {
+      alert("파일 URL을 찾을 수 없습니다.");
+      return;
+    }
+
+    try {
+      const response = await fetch(file.fileUrl, {
+        mode: "cors",
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.originalFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("파일 다운로드 중 오류:", error);
+      // CORS 에러 시 새 창에서 열기로 fallback
+      window.open(file.fileUrl, "_blank");
+    }
+  };
+
   return (
     <>
       <Card>
@@ -303,6 +330,15 @@ export function FileUpload({
                           <Eye className="h-4 w-4" />
                         </Button>
                       )}
+                      <Button
+                        onClick={() => handleFileDownload(file)}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 hover:bg-green-50"
+                        title="파일 다운로드"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
                       {!readOnly && (
                         <Button
                           onClick={() => handleFileDelete(file.fileId)}
