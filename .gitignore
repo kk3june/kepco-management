@@ -1,3 +1,7 @@
+# Before behavior (변경 전 역할 / 기능) 기본 로그·캐시·환경 파일 무시만 기록
+# Problem / Pain (수정 이유 / 증상) 모킹/환경 관련 제외 의도 파악 어려움
+# Change summary (변경 요약) 무시 대상 목적 주석 추가로 협업 이해도 향상
+
 # Logs
 logs
 *.log
@@ -25,3 +29,17 @@ dist-ssr
 
 .env
 .env.*
+
+# MSW
+public/mockServiceWorker.js
+pnpm-workspace.yaml
+
+# ESlint Configs
+.eslintrc.cjs
+.eslint.config.js
+
+# Other Configs
+src/_pip/*
+src/_records/*
+src/mocks/*
+er.name
